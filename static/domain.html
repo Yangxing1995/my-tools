@@ -1,0 +1,82 @@
+<!-- index.html (updated) -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Checker</title>
+</head>
+<body>
+
+<div id="app">
+    <h1>Domain Checker</h1>
+    <input v-model="domain" placeholder="Enter domain">
+    <input v-model="token" placeholder="Enter token">
+    <button @click="checkDomain">Check</button>
+    <pre v-if="result">
+      <ul class="result-list">
+        <li v-for="(item, index) in result" :key="index" class="domain-item">
+          <div class="domain-details">
+            <p class="domain-name">Domain: {{ item.domain }}</p>
+            <ul class="result-details">
+              <li v-for="(domainres, index) in item.result" :key="index" class="result-item">
+                <p>类型：{{ domainres.name }}</p>
+                <p>命令：{{ domainres.cmd }}</p>
+                <p>错误：{{ domainres.err }}</p>
+                <p>结果：{{ domainres.content }}</p>
+              </li>
+            </ul>
+            <p class="domain-analysis">Analysis: {{ item.analysis }}</p>
+          </div>
+        </li>
+      </ul>
+    </pre>
+</div>
+
+<style>
+    .domain-details::before {
+        content: '';
+        display: block;
+        background-color: #e6dead; /* 设置第一层级的背景颜色 */
+    }
+
+    .result-item::before {
+        content: '';
+        display: block;
+        background-color: lightgreen; /* 设置第二层级的背景颜色 */
+    }
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            domain: '',
+            token: '',
+            result: []
+        },
+        methods: {
+            checkDomain() {
+                fetch('/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `domain=${encodeURIComponent(this.domain)}&token=${encodeURIComponent(this.token)}`
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        this.result = JSON.parse(data);
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
+        }
+    });
+</script>
+</body>
+</html>
