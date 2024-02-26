@@ -4,5 +4,5 @@
 ## build
 
 ```shell
- go build -tags embed  
+ CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 go build -tags embed  
 ```
