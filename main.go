@@ -1,16 +1,22 @@
 package main
 
 import (
-	"io/ioutil"
-	"path/filepath"
+	"embed"
+	"fmt"
 
+	"my-tools/conf"
 	"my-tools/csrfmt"
 	"my-tools/domainchecker"
 
 	"github.com/gin-gonic/gin"
 )
 
+//go:embed static/*
+var content embed.FS
+
 func main() {
+
+	conf.Init(content)
 
 	r := gin.Default()
 
@@ -19,14 +25,13 @@ func main() {
 
 	// 创建一个路由处理程序，用于加载 HTML 页面
 	r.GET("/", func(c *gin.Context) {
-		path := "/Users/trustasia/go/src/yx/my-tools/static"
-		data, err := ioutil.ReadFile(filepath.Join(path, "index.html"))
-		if err != nil {
-			c.AbortWithError(500, err)
+		data, ok := conf.AppConfig.Htmls["index.html"]
+		if !ok {
+			c.AbortWithError(500, fmt.Errorf("Html not found"))
 		} else {
 			c.Data(200, "", data)
 		}
 	})
 
-	r.Run(":8080")
+	r.Run(":8111")
 }

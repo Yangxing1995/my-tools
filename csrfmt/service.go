@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"my-tools/conf"
 )
 
 // PageData 结构用于传递数据到 HTML 模板中
@@ -21,11 +23,11 @@ const (
 func Register(app *gin.Engine) {
 	r := app.Group(routerPrefix)
 
-	r.GET("/", func(c *gin.Context) {
+	r.GET("", func(c *gin.Context) {
 
 		w := c.Writer
 		// 默认展示页面
-		renderTemplate(w, "index.html", PageData{})
+		renderTemplate(w, "csr.html", PageData{})
 	})
 
 	r.POST("/", func(c *gin.Context) {
@@ -41,7 +43,7 @@ func Register(app *gin.Engine) {
 			OutputText: outputText,
 		}
 
-		renderTemplate(w, "index.html", data)
+		renderTemplate(w, "csr.html", data)
 		return
 	})
 }
@@ -61,29 +63,15 @@ func processText(inputText string) string {
 }
 
 func renderTemplate(w http.ResponseWriter, tmplName string, data PageData) {
-	tmpl, err := template.New("index.html").Parse(`
-		<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>处理换行服务</title>
-		</head>
-		<body>
-			<h1>处理换行</h1>
-			
-			<form action="{{.RouterPrefix}}/" method="post">
-				<label for="inputText">输入文本:</label>
-				<textarea id="inputText" name="inputText" rows="4" cols="50">{{.OutputText}}</textarea>
-				<br>
-				<input type="submit" value="处理文本">
-			</form>
-			
-			<p>处理后的文本:</p>
-			<pre>{{.OutputText}}</pre>
-		</body>
-		</html>
-	`)
+	htmlData, ok := conf.AppConfig.Htmls[tmplName]
+
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Html not found"))
+		return
+	}
+
+	tmpl, err := template.New(tmplName).Parse(string(htmlData))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -118,16 +106,4 @@ func formatCSR(csr string) string {
 	// 添加标头和标尾
 	finalCSR := "-----BEGIN CERTIFICATE REQUEST-----\n" + formattedCSR.String() + "-----END CERTIFICATE REQUEST-----\n"
 	return finalCSR
-}
-
-func fmtCSRForJson(csr string) string {
-
-	newCSR := ""
-	spilt := strings.Split(csr, "\n")
-
-	for i := 0; i < len(spilt); i++ {
-		newCSR += spilt[i] + "\\n"
-	}
-
-	return newCSR
 }
