@@ -10,11 +10,16 @@ import (
 
 // PageData 结构用于传递数据到 HTML 模板中
 type PageData struct {
-	OutputText string
+	OutputText   string
+	RouterPrefix string
 }
 
+const (
+	routerPrefix = "/csr"
+)
+
 func Register(app *gin.Engine) {
-	r := app.Group("/csr")
+	r := app.Group(routerPrefix)
 
 	r.GET("/", func(c *gin.Context) {
 
@@ -67,7 +72,7 @@ func renderTemplate(w http.ResponseWriter, tmplName string, data PageData) {
 		<body>
 			<h1>处理换行</h1>
 			
-			<form action="/" method="post">
+			<form action="{{.RouterPrefix}}/" method="post">
 				<label for="inputText">输入文本:</label>
 				<textarea id="inputText" name="inputText" rows="4" cols="50">{{.OutputText}}</textarea>
 				<br>
@@ -83,6 +88,8 @@ func renderTemplate(w http.ResponseWriter, tmplName string, data PageData) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	data.RouterPrefix = routerPrefix
 
 	err = tmpl.Execute(w, data)
 	if err != nil {
