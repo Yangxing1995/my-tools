@@ -63,7 +63,7 @@ func processText(inputText string) string {
 }
 
 func renderTemplate(w http.ResponseWriter, tmplName string, data PageData) {
-	htmlData, ok := conf.AppConfig.Htmls[tmplName]
+	htmlData, ok := config.AppConfig.Htmls[tmplName]
 
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)

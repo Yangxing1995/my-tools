@@ -16,16 +16,16 @@ var content embed.FS
 
 func main() {
 
-	conf.Init(content)
+	config.Init(content)
 
 	r := gin.Default()
 
-	domainchecker.Register(r)
+	domain.Register(r)
 	csrfmt.Register(r)
 
 	// 创建一个路由处理程序，用于加载 HTML 页面
 	r.GET("/", func(c *gin.Context) {
-		data, ok := conf.AppConfig.Htmls["index.html"]
+		data, ok := config.AppConfig.Htmls["index.html"]
 		if !ok {
 			c.AbortWithError(500, fmt.Errorf("Html not found"))
 		} else {
