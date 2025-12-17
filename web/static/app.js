@@ -128,4 +128,162 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.body && document.body.dataset.page === "csr") {
     wireCSRPage();
   }
+  if (document.body && document.body.dataset.page === "sectigo") {
+    wireSectigoPage();
+  }
 });
+
+function setSectigoStatus(msg, type) {
+  const el = $("sectigoStatus");
+  if (!el) return;
+  el.classList.remove("ok", "err");
+  if (type) el.classList.add(type);
+  el.textContent = msg || "";
+}
+
+function setFiles(runId, files) {
+  const el = $("sectigoFiles");
+  if (!el) return;
+  el.innerHTML = "";
+
+  if (!runId) return;
+
+  const list = (files || []).filter(f => f && typeof f.name === "string" && f.name.length > 0);
+  if (list.length === 0) {
+    el.textContent = "无输出文件";
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  list.forEach(f => {
+    const a = document.createElement("a");
+    a.href = `/api/v1/runs/file?runId=${encodeURIComponent(runId)}&name=${encodeURIComponent(f.name)}`;
+    a.textContent = `${f.name} (${f.size || 0} bytes)`;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    const div = document.createElement("div");
+    div.appendChild(a);
+    frag.appendChild(div);
+  });
+  el.appendChild(frag);
+}
+
+async function runSectigo() {
+  const btnRun = $("btnRun");
+  const btnCopy = $("btnCopyLog");
+  const input = $("sectigoInput");
+  const log = $("sectigoLog");
+  const meta = $("sectigoMeta");
+
+  if (!input || !log) return;
+
+  const op = (document.body.dataset.op || "detail");
+  const text = (input.value || "").trim();
+  if (!text) {
+    setSectigoStatus("输入为空", "err");
+    return;
+  }
+
+  setSectigoStatus("处理中...", "");
+  if (btnRun) btnRun.disabled = true;
+  if (btnCopy) btnCopy.disabled = true;
+  if (meta) meta.textContent = "";
+  setFiles("", []);
+
+  try {
+    const resp = await fetch(`/api/v1/sectigo/${op}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
+      setSectigoStatus(msg, "err");
+      log.value = "";
+      return;
+    }
+
+    if (!data || !data.ok || !data.data) {
+      setSectigoStatus("响应格式不正确", "err");
+      log.value = "";
+      return;
+    }
+
+    const d = data.data;
+    const stdout = typeof d.stdout === "string" ? d.stdout : "";
+    const stderr = typeof d.stderr === "string" ? d.stderr : "";
+    const exitCode = typeof d.exitCode === "number" ? d.exitCode : 0;
+    const runId = typeof d.runId === "string" ? d.runId : "";
+
+    log.value = (stdout ? "[stdout]\n" + stdout : "") + (stderr ? "\n[stderr]\n" + stderr : "");
+
+    if (meta) meta.textContent = runId ? ("runId: " + runId + " / exitCode: " + exitCode) : ("exitCode: " + exitCode);
+
+    setFiles(runId, d.files || []);
+    setSectigoStatus("完成", exitCode === 0 ? "ok" : "err");
+    if (btnCopy) btnCopy.disabled = false;
+  } catch (e) {
+    setSectigoStatus("请求失败：" + e.message, "err");
+    log.value = "";
+  } finally {
+    if (btnRun) btnRun.disabled = false;
+  }
+}
+
+function setActiveOp(op) {
+  document.body.dataset.op = op;
+  const tabDetail = $("tabDetail");
+  const tabRefund = $("tabRefund");
+  if (tabDetail) tabDetail.classList.toggle("primary", op === "detail");
+  if (tabRefund) tabRefund.classList.toggle("primary", op === "refund");
+  setSectigoStatus("", "");
+  const meta = $("sectigoMeta");
+  if (meta) meta.textContent = "";
+  setFiles("", []);
+}
+
+function wireSectigoPage() {
+  const tabDetail = $("tabDetail");
+  const tabRefund = $("tabRefund");
+  const btnRun = $("btnRun");
+  const btnClear = $("btnClear");
+  const btnCopy = $("btnCopyLog");
+  const input = $("sectigoInput");
+  const log = $("sectigoLog");
+
+  setActiveOp("detail");
+
+  if (tabDetail) tabDetail.addEventListener("click", () => setActiveOp("detail"));
+  if (tabRefund) tabRefund.addEventListener("click", () => setActiveOp("refund"));
+  if (btnRun) btnRun.addEventListener("click", runSectigo);
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (input) input.value = "";
+      if (log) log.value = "";
+      setSectigoStatus("", "");
+      const meta = $("sectigoMeta");
+      if (meta) meta.textContent = "";
+      setFiles("", []);
+      if (btnCopy) btnCopy.disabled = true;
+    });
+  }
+
+  if (btnCopy && log) {
+    btnCopy.addEventListener("click", async () => {
+      const ok = await copyToClipboard(log.value);
+      setSectigoStatus(ok ? "已复制到剪贴板" : "复制失败（浏览器不支持或无权限）", ok ? "ok" : "err");
+    });
+  }
+
+  if (input) {
+    input.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runSectigo();
+      }
+    });
+  }
+}
