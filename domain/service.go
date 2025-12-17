@@ -9,16 +9,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"my-tools/conf"
-	"my-tools/domainchecker/utils"
+	"my-tools/domain/utils"
 
+	"my-tools/config"
 )
 
 // Register 注册
 func Register(app *gin.Engine) {
 
 	r := app.Group("/domain")
-
 
 	// 创建一个路由处理程序，用于加载 HTML 页面
 	r.GET("", func(c *gin.Context) {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"my-tools/conf"
+	"my-tools/config"
 )
 
 // PageData 结构用于传递数据到 HTML 模板中

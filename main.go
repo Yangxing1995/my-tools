@@ -4,9 +4,9 @@ import (
 	"embed"
 	"fmt"
 
-	"my-tools/conf"
+	"my-tools/config"
 	"my-tools/csrfmt"
-	"my-tools/domainchecker"
+	"my-tools/domain"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,6 +32,8 @@ func main() {
 			c.Data(200, "", data)
 		}
 	})
+
+	r.Static("/", ".static")
 
 	r.Run(":8111")
 }
