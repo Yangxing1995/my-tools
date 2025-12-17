@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>my-tools</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>my-tools</h1>
+        <div class="sub">本地运行的工具箱（Go + Gin）</div>
+      </div>
+      <div class="nav">
+        <a class="active" href="/">首页</a>
+        <a href="/csr">CSR 格式化</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card half">
+        <h2>CSR 格式化</h2>
+        <p>
+          把 JSON 里的 CSR（例如带 <span class="kbd">\\r\\n</span>）规范化为标准 PEM。
+        </p>
+        <div class="footer" style="margin-top: 12px;">
+          <a href="/csr">打开</a>
+        </div>
+      </div>
+
+      <div class="card half">
+        <h2>后续功能（规划）</h2>
+        <p>
+          导出账单、Setigo 订单查询/操作：统一通过本地 CLI 执行层（execx）实现。
+        </p>
+        <div class="footer" style="margin-top: 12px;">
+          参考 README 的 Roadmap
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>快捷操作</h2>
+        <p>
+          在 CSR 页面：按 <span class="kbd">Ctrl</span> / <span class="kbd">Cmd</span> + <span class="kbd">Enter</span> 触发格式化。
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      API 健康检查：<a href="/healthz" target="_blank" rel="noreferrer">/healthz</a>
+    </div>
+  </div>
+</body>
+</html>
