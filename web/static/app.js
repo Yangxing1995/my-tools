@@ -124,9 +124,152 @@ function wireCSRPage() {
   }
 }
 
+async function copyCertToClipboard(certText, btnId) {
+  const ok = await copyToClipboard(certText);
+  const btn = $(btnId);
+  if (btn) {
+    const originalText = btn.textContent;
+    btn.textContent = ok ? "已复制" : "复制失败";
+    setTimeout(() => {
+      btn.textContent = originalText;
+    }, 2000);
+  }
+  return ok;
+}
+
+function renderCertList(certs) {
+  const container = $("outputContainer");
+  const certList = $("certList");
+  const certCount = $("certCount");
+  
+  if (!container || !certList || !certCount) return;
+  
+  certCount.textContent = `(共 ${certs.length} 个证书)`;
+  certList.innerHTML = "";
+  
+  certs.forEach((cert, index) => {
+    const certItem = document.createElement("div");
+    certItem.style.marginBottom = "16px";
+    
+    const toolbar = document.createElement("div");
+    toolbar.className = "toolbar";
+    toolbar.style.marginBottom = "8px";
+    
+    const label = document.createElement("span");
+    label.textContent = `证书 ${index + 1}`;
+    label.style.fontWeight = "bold";
+    
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn";
+    copyBtn.textContent = "复制";
+    copyBtn.id = `btnCopyCert${index}`;
+    copyBtn.addEventListener("click", () => copyCertToClipboard(cert, `btnCopyCert${index}`));
+    
+    toolbar.appendChild(label);
+    toolbar.appendChild(copyBtn);
+    
+    const textarea = document.createElement("textarea");
+    textarea.className = "textarea";
+    textarea.readOnly = true;
+    textarea.value = cert;
+    textarea.style.height = "150px";
+    textarea.style.fontSize = "12px";
+    
+    certItem.appendChild(toolbar);
+    certItem.appendChild(textarea);
+    certList.appendChild(certItem);
+  });
+  
+  container.style.display = "block";
+}
+
+async function splitCertChain() {
+  const btn = $("btnSplit");
+  const inEl = $("input");
+  const container = $("outputContainer");
+
+  if (!inEl) return;
+
+  setStatus("处理中...", "");
+  if (btn) btn.disabled = true;
+  if (container) container.style.display = "none";
+
+  const certChain = (inEl.value || "").trim();
+  if (!certChain) {
+    setStatus("输入为空", "err");
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/v1/cert/split", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ certChain })
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
+      setStatus(msg, "err");
+      return;
+    }
+
+    if (!data || !data.ok || !data.data || !Array.isArray(data.data.certs)) {
+      setStatus("响应格式不正确", "err");
+      return;
+    }
+
+    const certs = data.data.certs;
+    const count = data.data.count || certs.length;
+    
+    renderCertList(certs);
+    setStatus(`完成，共拆分出 ${count} 个证书`, "ok");
+  } catch (e) {
+    setStatus("请求失败：" + e.message, "err");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function wireCertPage() {
+  const btn = $("btnSplit");
+  const btnClear = $("btnClear");
+  const inEl = $("input");
+  const container = $("outputContainer");
+
+  if (btn) {
+    btn.addEventListener("click", () => {
+      splitCertChain();
+    });
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (inEl) inEl.value = "";
+      if (container) container.style.display = "none";
+      const certList = $("certList");
+      if (certList) certList.innerHTML = "";
+      setStatus("", "");
+    });
+  }
+
+  if (inEl) {
+    inEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        splitCertChain();
+      }
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   if (document.body && document.body.dataset.page === "csr") {
     wireCSRPage();
+  }
+  if (document.body && document.body.dataset.page === "cert") {
+    wireCertPage();
   }
   if (document.body && document.body.dataset.page === "sectigo") {
     wireSectigoPage();
