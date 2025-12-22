@@ -137,6 +137,23 @@ async function copyCertToClipboard(certText, btnId) {
   return ok;
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return "N/A";
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
 function renderCertList(certs) {
   const container = $("outputContainer");
   const certList = $("certList");
@@ -149,7 +166,10 @@ function renderCertList(certs) {
   
   certs.forEach((cert, index) => {
     const certItem = document.createElement("div");
-    certItem.style.marginBottom = "16px";
+    certItem.className = "cert-item";
+    
+    const leftDiv = document.createElement("div");
+    leftDiv.className = "cert-left";
     
     const toolbar = document.createElement("div");
     toolbar.className = "toolbar";
@@ -161,9 +181,9 @@ function renderCertList(certs) {
     
     const copyBtn = document.createElement("button");
     copyBtn.className = "btn";
-    copyBtn.textContent = "复制";
+    copyBtn.textContent = "复制PEM";
     copyBtn.id = `btnCopyCert${index}`;
-    copyBtn.addEventListener("click", () => copyCertToClipboard(cert, `btnCopyCert${index}`));
+    copyBtn.addEventListener("click", () => copyCertToClipboard(cert.pem, `btnCopyCert${index}`));
     
     toolbar.appendChild(label);
     toolbar.appendChild(copyBtn);
@@ -171,12 +191,58 @@ function renderCertList(certs) {
     const textarea = document.createElement("textarea");
     textarea.className = "textarea";
     textarea.readOnly = true;
-    textarea.value = cert;
-    textarea.style.height = "150px";
+    textarea.value = cert.pem || "";
+    textarea.style.height = "200px";
     textarea.style.fontSize = "12px";
     
-    certItem.appendChild(toolbar);
-    certItem.appendChild(textarea);
+    leftDiv.appendChild(toolbar);
+    leftDiv.appendChild(textarea);
+    
+    const rightDiv = document.createElement("div");
+    rightDiv.className = "cert-right";
+    
+    const sections = [
+      {
+        title: "主题 (Subject)",
+        content: cert.subject || "N/A"
+      },
+      {
+        title: "签发者 (Issuer)",
+        content: cert.issuer || "N/A"
+      },
+      {
+        title: "有效期",
+        content: `<div><span class="cert-info-label">起始:</span>${formatDate(cert.notBefore)}</div><div><span class="cert-info-label">结束:</span>${formatDate(cert.notAfter)}</div>`
+      },
+      {
+        title: "序列号",
+        content: cert.serialNumber || "N/A"
+      },
+      {
+        title: "其他信息",
+        content: `<div><span class="cert-info-label">版本:</span>${cert.version || "N/A"}</div><div><span class="cert-info-label">是否CA:</span>${cert.isCA ? "是" : "否"}</div>`
+      }
+    ];
+    
+    sections.forEach(section => {
+      const sectionDiv = document.createElement("div");
+      sectionDiv.className = "cert-info-section";
+      
+      const titleDiv = document.createElement("div");
+      titleDiv.className = "cert-info-title";
+      titleDiv.textContent = section.title;
+      
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "cert-info-content";
+      contentDiv.innerHTML = section.content;
+      
+      sectionDiv.appendChild(titleDiv);
+      sectionDiv.appendChild(contentDiv);
+      rightDiv.appendChild(sectionDiv);
+    });
+    
+    certItem.appendChild(leftDiv);
+    certItem.appendChild(rightDiv);
     certList.appendChild(certItem);
   });
   

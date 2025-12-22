@@ -175,3 +175,66 @@ a:hover { text-decoration: underline; }
   border-radius: 8px;
   background: rgba(255,255,255,0.04);
 }
+
+.cert-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(7, 11, 20, 0.3);
+}
+
+.cert-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.cert-right {
+  flex: 0 0 350px;
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+}
+
+.cert-info-section {
+  margin-bottom: 16px;
+}
+
+.cert-info-section:last-child {
+  margin-bottom: 0;
+}
+
+.cert-info-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--brand);
+  margin-bottom: 6px;
+}
+
+.cert-info-content {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.cert-info-label {
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+@media (max-width: 900px) {
+  .cert-item {
+    flex-direction: column;
+  }
+  
+  .cert-right {
+    flex: 1;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+}

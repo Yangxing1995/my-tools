@@ -18,7 +18,7 @@ func Register(r *gin.RouterGroup) {
 			return
 		}
 
-		certs, err := svc.SplitCertChain(req.CertChain)
+		certs, err := svc.SplitCertChainWithInfo(req.CertChain)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, httpapi.Fail("invalid_cert", err.Error()))
 			return
