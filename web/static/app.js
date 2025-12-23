@@ -2,6 +2,28 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function renderNav(activePage) {
+  const navItems = [
+    { href: "/", label: "首页", page: "home" },
+    { href: "/csr", label: "CSR 格式化", page: "csr" },
+    { href: "/cert", label: "证书格式化", page: "cert" },
+    { href: "/json", label: "JSON 格式化", page: "json" }
+  ];
+
+  const navEl = document.querySelector(".nav");
+  if (!navEl) return;
+
+  navEl.innerHTML = "";
+  navItems
+    .filter(item => item.page !== activePage)
+    .forEach(item => {
+      const a = document.createElement("a");
+      a.href = item.href;
+      a.textContent = item.label;
+      navEl.appendChild(a);
+    });
+}
+
 function setStatus(msg, type) {
   const el = $("status");
   if (!el) return;
@@ -516,16 +538,22 @@ function wireJSONPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (document.body && document.body.dataset.page === "csr") {
+  const page = document.body ? document.body.dataset.page : null;
+  
+  if (page) {
+    renderNav(page);
+  }
+  
+  if (page === "csr") {
     wireCSRPage();
   }
-  if (document.body && document.body.dataset.page === "cert") {
+  if (page === "cert") {
     wireCertPage();
   }
-  if (document.body && document.body.dataset.page === "json") {
+  if (page === "json") {
     wireJSONPage();
   }
-  if (document.body && document.body.dataset.page === "sectigo") {
+  if (page === "sectigo") {
     wireSectigoPage();
   }
 });

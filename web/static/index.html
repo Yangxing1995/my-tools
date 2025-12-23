@@ -6,20 +6,14 @@
   <title>my-tools</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
+<body data-page="home">
   <div class="container">
     <div class="header">
       <div class="brand">
         <h1>my-tools</h1>
         <div class="sub">本地运行的工具箱（Go + Gin）</div>
       </div>
-      <div class="nav">
-        <a class="active" href="/">首页</a>
-        <a href="/csr">CSR 格式化</a>
-        <a href="/cert">证书格式化</a>
-        <a href="/json">JSON 格式化</a>
-<!--        <a href="/sectigo">Sectigo</a>-->
-      </div>
+      <div class="nav"></div>
     </div>
 
     <div class="grid">
@@ -68,5 +62,8 @@
 <!--      API 健康检查：<a href="/healthz" target="_blank" rel="noreferrer">/healthz</a>-->
 <!--    </div>-->
   </div>
+
+<!--  nav组件在app.js中-->
+  <script src="/static/app.js"></script>
 </body>
 </html>
