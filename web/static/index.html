@@ -1,69 +1,70 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>my-tools</title>
-  <link rel="stylesheet" href="/static/style.css" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>my-tools</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+    <link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body data-page="home">
-  <div class="container">
+<div class="container">
     <div class="header">
-      <div class="brand">
-        <h1>my-tools</h1>
-        <div class="sub">工具箱</div>
-      </div>
-      <div class="nav"></div>
+        <div class="brand">
+            <h1>my-tools</h1>
+            <div class="sub">工具箱</div>
+        </div>
+        <div class="nav"></div>
     </div>
 
     <div class="grid">
-      <div class="card half">
-        <h2>CSR 格式化</h2>
-        <p>
-          把 JSON 里的 CSR（例如带 <span class="kbd">\\r\\n</span>）规范化为标准 PEM。
-        </p>
-        <div class="footer" style="margin-top: 12px;">
-          <a href="/csr">打开</a>
+        <div class="card half">
+            <h2>CSR 格式化</h2>
+            <p>
+                把 JSON 里的 CSR（例如带 <span class="kbd">\\r\\n</span>）规范化为标准 PEM。
+            </p>
+            <div class="footer" style="margin-top: 12px;">
+                <a href="/csr">打开</a>
+            </div>
         </div>
-      </div>
 
-      <div class="card half">
-        <h2>证书格式化</h2>
-        <p>
-          将包含多个证书的 PEM 链自动拆分成独立证书，并格式化为标准格式。
-        </p>
-        <div class="footer" style="margin-top: 12px;">
-          <a href="/cert">打开</a>
+        <div class="card half">
+            <h2>证书格式化</h2>
+            <p>
+                将包含多个证书的 PEM 链自动拆分成独立证书，并格式化为标准格式。
+            </p>
+            <div class="footer" style="margin-top: 12px;">
+                <a href="/cert">打开</a>
+            </div>
         </div>
-      </div>
 
-      <div class="card half">
-        <h2>JSON 格式化</h2>
-        <p>
-          格式化或压缩 JSON 数据，支持自定义缩进空格数。
-        </p>
-        <div class="footer" style="margin-top: 12px;">
-          <a href="/json">打开</a>
+        <div class="card half">
+            <h2>JSON 格式化</h2>
+            <p>
+                格式化或压缩 JSON 数据，支持自定义缩进空格数。
+            </p>
+            <div class="footer" style="margin-top: 12px;">
+                <a href="/json">打开</a>
+            </div>
         </div>
-      </div>
 
-<!--      <div class="card half">-->
-<!--        <h2>Sectigo 工具</h2>-->
-<!--        <p>-->
-<!--          调用本地二进制 <span class="kbd">sectigoTool</span> 执行 detail/refund，展示日志并下载输出文件。-->
-<!--        </p>-->
-<!--        <div class="footer" style="margin-top: 12px;">-->
-<!--          <a href="/sectigo">打开</a>-->
-<!--        </div>-->
-<!--      </div>-->
+        <!--      <div class="card half">-->
+        <!--        <h2>Sectigo 工具</h2>-->
+        <!--        <p>-->
+        <!--          调用本地二进制 <span class="kbd">sectigoTool</span> 执行 detail/refund，展示日志并下载输出文件。-->
+        <!--        </p>-->
+        <!--        <div class="footer" style="margin-top: 12px;">-->
+        <!--          <a href="/sectigo">打开</a>-->
+        <!--        </div>-->
+        <!--      </div>-->
     </div>
 
-<!--    <div class="footer">-->
-<!--      API 健康检查：<a href="/healthz" target="_blank" rel="noreferrer">/healthz</a>-->
-<!--    </div>-->
-  </div>
+    <!--    <div class="footer">-->
+    <!--      API 健康检查：<a href="/healthz" target="_blank" rel="noreferrer">/healthz</a>-->
+    <!--    </div>-->
+</div>
 
 <!--  nav组件在app.js中-->
-  <script src="/static/app.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>
