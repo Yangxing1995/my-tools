@@ -31,6 +31,10 @@ func New() *Server {
 	e.GET("/cert", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "cert.html"))
 	})
+	// JSON 格式化页面
+	e.GET("/json", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "json.html"))
+	})
 	// Sectigo 页面
 	e.GET("/sectigo", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "sectigo.html"))

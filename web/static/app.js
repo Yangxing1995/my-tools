@@ -330,12 +330,200 @@ function wireCertPage() {
   }
 }
 
+async function formatJSON() {
+  const btn = $("btnFormat");
+  const btnCopy = $("btnCopy");
+  const btnSave = $("btnSave");
+  const inEl = $("input");
+  const outEl = $("output");
+  const indentSelect = $("indentSelect");
+
+  if (!inEl || !outEl) return;
+
+  setStatus("处理中...", "");
+  if (btn) btn.disabled = true;
+  if (btnCopy) btnCopy.disabled = true;
+  if (btnSave) btnSave.disabled = true;
+
+  const jsonText = (inEl.value || "").trim();
+  if (!jsonText) {
+    setStatus("输入为空", "err");
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  const indent = indentSelect ? parseInt(indentSelect.value, 10) : 2;
+
+  try {
+    const resp = await fetch("/api/v1/json/format", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ json: jsonText, indent })
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
+      setStatus(msg, "err");
+      outEl.value = "";
+      return;
+    }
+
+    if (!data || !data.ok || !data.data || typeof data.data.formatted !== "string") {
+      setStatus("响应格式不正确", "err");
+      outEl.value = "";
+      return;
+    }
+
+    outEl.value = data.data.formatted;
+    setStatus("格式化完成", "ok");
+    if (btnCopy) btnCopy.disabled = false;
+    if (btnSave) btnSave.disabled = false;
+  } catch (e) {
+    setStatus("请求失败：" + e.message, "err");
+    outEl.value = "";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function minifyJSON() {
+  const btn = $("btnMinify");
+  const btnCopy = $("btnCopy");
+  const btnSave = $("btnSave");
+  const inEl = $("input");
+  const outEl = $("output");
+
+  if (!inEl || !outEl) return;
+
+  setStatus("处理中...", "");
+  if (btn) btn.disabled = true;
+  if (btnCopy) btnCopy.disabled = true;
+  if (btnSave) btnSave.disabled = true;
+
+  const jsonText = (inEl.value || "").trim();
+  if (!jsonText) {
+    setStatus("输入为空", "err");
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  try {
+    const resp = await fetch("/api/v1/json/minify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ json: jsonText })
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
+      setStatus(msg, "err");
+      outEl.value = "";
+      return;
+    }
+
+    if (!data || !data.ok || !data.data || typeof data.data.minified !== "string") {
+      setStatus("响应格式不正确", "err");
+      outEl.value = "";
+      return;
+    }
+
+    outEl.value = data.data.minified;
+    setStatus("压缩完成", "ok");
+    if (btnCopy) btnCopy.disabled = false;
+    if (btnSave) btnSave.disabled = false;
+  } catch (e) {
+    setStatus("请求失败：" + e.message, "err");
+    outEl.value = "";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function saveJSONToFile() {
+  const outEl = $("output");
+  
+  if (!outEl || !outEl.value.trim()) {
+    setStatus("没有可保存的内容", "err");
+    return;
+  }
+
+  const fileName = "output.json";
+
+  try {
+    const blob = new Blob([outEl.value], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStatus("文件已保存", "ok");
+  } catch (e) {
+    setStatus("保存文件失败：" + e.message, "err");
+  }
+}
+
+function wireJSONPage() {
+  const btnFormat = $("btnFormat");
+  const btnMinify = $("btnMinify");
+  const btnCopy = $("btnCopy");
+  const btnSave = $("btnSave");
+  const btnClear = $("btnClear");
+  const inEl = $("input");
+  const outEl = $("output");
+
+  if (btnFormat) {
+    btnFormat.addEventListener("click", formatJSON);
+  }
+
+  if (btnMinify) {
+    btnMinify.addEventListener("click", minifyJSON);
+  }
+
+  if (btnCopy && outEl) {
+    btnCopy.addEventListener("click", async () => {
+      const ok = await copyToClipboard(outEl.value);
+      setStatus(ok ? "已复制到剪贴板" : "复制失败（浏览器不支持或无权限）", ok ? "ok" : "err");
+    });
+  }
+
+  if (btnSave) {
+    btnSave.addEventListener("click", saveJSONToFile);
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (inEl) inEl.value = "";
+      if (outEl) outEl.value = "";
+      setStatus("", "");
+      if (btnCopy) btnCopy.disabled = true;
+      if (btnSave) btnSave.disabled = true;
+    });
+  }
+
+  if (inEl) {
+    inEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        formatJSON();
+      }
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   if (document.body && document.body.dataset.page === "csr") {
     wireCSRPage();
   }
   if (document.body && document.body.dataset.page === "cert") {
     wireCertPage();
+  }
+  if (document.body && document.body.dataset.page === "json") {
+    wireJSONPage();
   }
   if (document.body && document.body.dataset.page === "sectigo") {
     wireSectigoPage();

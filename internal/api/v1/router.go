@@ -5,11 +5,13 @@ import (
 
 	"my-tools/internal/api/v1/cert"
 	"my-tools/internal/api/v1/csr"
+	"my-tools/internal/api/v1/json"
 	"my-tools/internal/api/v1/sectigo"
 )
 
 func Register(r *gin.RouterGroup) {
 	csr.Register(r)
 	cert.Register(r)
+	json.Register(r)
 	sectigo.Register(r)
 }
