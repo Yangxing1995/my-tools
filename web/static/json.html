@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JSON 格式化 - my-tools</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body data-page="json">
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>JSON 格式化</h1>
+        <div class="sub">格式化或压缩 JSON 数据</div>
+      </div>
+      <div class="nav">
+        <a href="/">首页</a>
+        <a href="/csr">CSR 格式化</a>
+        <a href="/cert">证书格式化</a>
+        <a class="active" href="/json">JSON 格式化</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card half">
+        <h2>输入</h2>
+        <div class="toolbar">
+          <button class="btn primary" id="btnFormat">格式化</button>
+          <button class="btn" id="btnMinify">压缩</button>
+          <button class="btn" id="btnClear">清空</button>
+          <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span class="kbd">Enter</span></div>
+        </div>
+        <textarea class="textarea" id="input" placeholder='粘贴 JSON 数据，例如：
+
+{"name":"test","age":18,"items":["a","b","c"]}
+
+或
+
+{
+  "name": "test",
+  "age": 18
+}'></textarea>
+        <div class="toolbar" style="margin-top: 10px;">
+          <label class="small">
+            <span style="margin-right: 6px;">缩进空格数：</span>
+            <select id="indentSelect" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 12px;">
+              <option value="2" selected>2</option>
+              <option value="4">4</option>
+              <option value="8">8</option>
+            </select>
+          </label>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="card half">
+        <h2>输出</h2>
+        <div class="toolbar">
+          <button class="btn" id="btnCopy" disabled>复制</button>
+          <button class="btn" id="btnSave" disabled>保存文件</button>
+        </div>
+        <textarea class="textarea" id="output" readonly placeholder="格式化或压缩后的结果将显示在这里"></textarea>
+      </div>
+
+      <div class="card">
+        <h2>说明</h2>
+        <p>
+          本工具支持格式化和压缩 JSON 数据。
+        </p>
+        <p>
+          <strong>格式化：</strong>将压缩的 JSON 转换为带缩进的可读格式，可以自定义缩进空格数。
+        </p>
+        <p>
+          <strong>压缩：</strong>移除 JSON 中的所有空白字符，生成最小化的 JSON 字符串。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
