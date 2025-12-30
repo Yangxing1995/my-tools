@@ -33,13 +33,35 @@ function setStatus(msg, type) {
 }
 
 async function copyToClipboard(text) {
-  if (!text) return false;
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (_) {
-    return false;
-  }
+    if (!text) return false;
+
+    // 优先使用现代 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (err) {
+            console.warn("Clipboard API failed, falling back to execCommand:", err);
+        }
+    }
+
+    // 降级方案：使用 execCommand
+    try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.top = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, text.length);
+        const success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return success;
+    } catch (err) {
+        console.error("Copy failed:", err);
+        return false;
+    }
 }
 
 function parseCSRFromInput(raw) {
@@ -495,6 +517,8 @@ function wireJSONPage() {
   const btnCopy = $("btnCopy");
   const btnSave = $("btnSave");
   const btnClear = $("btnClear");
+  const btnFullscreenInput = $("btnFullscreenInput");
+  const btnFullscreenOutput = $("btnFullscreenOutput");
   const inEl = $("input");
   const outEl = $("output");
 
@@ -524,6 +548,34 @@ function wireJSONPage() {
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
       if (btnSave) btnSave.disabled = true;
+    });
+  }
+
+  if (btnFullscreenInput && inEl) {
+    btnFullscreenInput.addEventListener("click", () => {
+      if (inEl.requestFullscreen) {
+        inEl.requestFullscreen();
+      } else if (inEl.webkitRequestFullscreen) {
+        inEl.webkitRequestFullscreen();
+      } else if (inEl.mozRequestFullScreen) {
+        inEl.mozRequestFullScreen();
+      } else if (inEl.msRequestFullscreen) {
+        inEl.msRequestFullscreen();
+      }
+    });
+  }
+
+  if (btnFullscreenOutput && outEl) {
+    btnFullscreenOutput.addEventListener("click", () => {
+      if (outEl.requestFullscreen) {
+        outEl.requestFullscreen();
+      } else if (outEl.webkitRequestFullscreen) {
+        outEl.webkitRequestFullscreen();
+      } else if (outEl.mozRequestFullScreen) {
+        outEl.mozRequestFullScreen();
+      } else if (outEl.msRequestFullscreen) {
+        outEl.msRequestFullscreen();
+      }
     });
   }
 

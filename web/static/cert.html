@@ -1,56 +1,58 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>证书格式化 - my-tools</title>
-  <link rel="stylesheet" href="/static/style.css" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>证书格式化 - Wrench</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 </head>
 <body data-page="cert">
-  <div class="container">
+<div class="container">
     <div class="header">
-      <div class="brand">
-        <h1>证书格式化</h1>
-        <div class="sub">输入证书链，自动拆分并格式化为标准 PEM</div>
-      </div>
-      <div class="nav"></div>
+        <div class="brand">
+            <h1>证书格式化</h1>
+            <div class="sub">输入证书链，自动拆分并格式化为标准 PEM</div>
+        </div>
+        <div class="nav"></div>
     </div>
 
     <div class="grid">
-      <div class="card">
-        <div class="toolbar">
-          <button class="btn primary" id="btnSplit">拆分证书</button>
-          <button class="btn" id="btnClear">清空</button>
-          <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span class="kbd">Enter</span></div>
-        </div>
-        <textarea class="textarea" id="input" placeholder="粘贴包含多个证书的 PEM 链，例如：
+        <div class="card">
+            <div class="toolbar">
+                <button class="btn primary" id="btnSplit">拆分证书</button>
+                <button class="btn" id="btnClear">清空</button>
+                <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span
+                        class="kbd">Enter</span></div>
+            </div>
+            <textarea class="textarea" id="input" placeholder="粘贴包含多个证书的 PEM 链，例如：
 
 -----BEGIN CERTIFICATE-----\nMIIE7DCCA9Sg...
 -----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIE3zCCAseg...
 -----END CERTIFICATE-----
 
 支持带 \r\n 或 \\n 转义的格式" style="height: 200px;"></textarea>
-        <div id="status" class="status"></div>
-      </div>
+            <div id="status" class="status"></div>
+        </div>
 
-      <div class="card" id="outputContainer" style="display: none;">
-        <h2>拆分结果 <span id="certCount"></span></h2>
-        <div id="certList"></div>
-      </div>
+        <div class="card" id="outputContainer" style="display: none;">
+            <h2>拆分结果 <span id="certCount"></span></h2>
+            <div id="certList"></div>
+        </div>
 
-      <div class="card">
-        <h2>说明</h2>
-        <p>
-          本工具会自动识别证书链中的多个证书，将它们拆分成独立的证书，并格式化为标准的 PEM 格式（每行 64 字符）。
-          支持处理带有 <span class="kbd">\\r\\n</span> 或 <span class="kbd">\\n</span> 转义字符的输入。
-        </p>
-        <p>
-          拆分后的证书会按顺序显示，通常第一个是终端实体证书，后续是中间证书和根证书。
-        </p>
-      </div>
+        <div class="card">
+            <h2>说明</h2>
+            <p>
+                本工具会自动识别证书链中的多个证书，将它们拆分成独立的证书，并格式化为标准的 PEM 格式（每行 64 字符）。
+                支持处理带有 <span class="kbd">\\r\\n</span> 或 <span class="kbd">\\n</span> 转义字符的输入。
+            </p>
+            <p>
+                拆分后的证书会按顺序显示，通常第一个是终端实体证书，后续是中间证书和根证书。
+            </p>
+        </div>
     </div>
-  </div>
+</div>
 
-  <script src="/static/app.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>
