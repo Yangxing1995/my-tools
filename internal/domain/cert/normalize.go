@@ -1,7 +1,9 @@
 package cert
 
 import (
+	"crypto/sha1"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"strings"
@@ -96,6 +98,7 @@ type CertInfo struct {
 	SerialNumber string    `json:"serialNumber"`
 	Version      int       `json:"version"`
 	IsCA         bool      `json:"isCA"`
+	Sha1         string    `json:"sha1"`
 }
 
 // SplitCertChainWithInfo 将证书链拆分成多个独立的证书并解析信息
@@ -176,6 +179,7 @@ func parseCertInfo(certPEM string) (CertInfo, error) {
 		SerialNumber: cert.SerialNumber.String(),
 		Version:      cert.Version,
 		IsCA:         cert.IsCA,
+		Sha1:         SHA1Hash(cert.Raw),
 	}, nil
 }
 
@@ -219,4 +223,10 @@ func wrap64(s string) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// SHA1Hash 计算 SHA1 (全大写)
+func SHA1Hash(raw []byte) string {
+	s := sha1.Sum(raw)
+	return strings.ToUpper(hex.EncodeToString(s[:]))
 }

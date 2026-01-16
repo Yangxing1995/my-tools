@@ -13,6 +13,7 @@ type CertDetail struct {
 	NotBefore    time.Time `json:"notBefore"`
 	NotAfter     time.Time `json:"notAfter"`
 	SerialNumber string    `json:"serialNumber"`
+	Sha1         string    `json:"sha1"`
 	Version      int       `json:"version"`
 	IsCA         bool      `json:"isCA"`
 }

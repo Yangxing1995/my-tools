@@ -202,49 +202,55 @@ function renderCertList(certs) {
   const container = $("outputContainer");
   const certList = $("certList");
   const certCount = $("certCount");
-  
+
   if (!container || !certList || !certCount) return;
-  
+
   certCount.textContent = `(共 ${certs.length} 个证书)`;
   certList.innerHTML = "";
-  
+
   certs.forEach((cert, index) => {
     const certItem = document.createElement("div");
     certItem.className = "cert-item";
-    
+
     const leftDiv = document.createElement("div");
     leftDiv.className = "cert-left";
-    
+
     const toolbar = document.createElement("div");
     toolbar.className = "toolbar";
     toolbar.style.marginBottom = "8px";
-    
+
     const label = document.createElement("span");
     label.textContent = `证书 ${index + 1}`;
     label.style.fontWeight = "bold";
-    
+
     const copyBtn = document.createElement("button");
     copyBtn.className = "btn";
     copyBtn.textContent = "复制PEM";
     copyBtn.id = `btnCopyCert${index}`;
     copyBtn.addEventListener("click", () => copyCertToClipboard(cert.pem, `btnCopyCert${index}`));
-    
+
+    const decodeBtn = document.createElement("button");
+    decodeBtn.className = "btn";
+    decodeBtn.textContent = "在线解析";
+    decodeBtn.addEventListener("click", () => window.open("https://myssl.com/cert_decode.html?id="+cert.sha1, "_blank"));
+
     toolbar.appendChild(label);
     toolbar.appendChild(copyBtn);
-    
+    toolbar.appendChild(decodeBtn);
+
     const textarea = document.createElement("textarea");
     textarea.className = "textarea";
     textarea.readOnly = true;
     textarea.value = cert.pem || "";
     textarea.style.height = "200px";
     textarea.style.fontSize = "12px";
-    
+
     leftDiv.appendChild(toolbar);
     leftDiv.appendChild(textarea);
-    
+
     const rightDiv = document.createElement("div");
     rightDiv.className = "cert-right";
-    
+
     const sections = [
       {
         title: "主题 (Subject)",
@@ -267,29 +273,29 @@ function renderCertList(certs) {
         content: `<div><span class="cert-info-label">版本:</span>${cert.version || "N/A"}</div><div><span class="cert-info-label">是否CA:</span>${cert.isCA ? "是" : "否"}</div>`
       }
     ];
-    
+
     sections.forEach(section => {
       const sectionDiv = document.createElement("div");
       sectionDiv.className = "cert-info-section";
-      
+
       const titleDiv = document.createElement("div");
       titleDiv.className = "cert-info-title";
       titleDiv.textContent = section.title;
-      
+
       const contentDiv = document.createElement("div");
       contentDiv.className = "cert-info-content";
       contentDiv.innerHTML = section.content;
-      
+
       sectionDiv.appendChild(titleDiv);
       sectionDiv.appendChild(contentDiv);
       rightDiv.appendChild(sectionDiv);
     });
-    
+
     certItem.appendChild(leftDiv);
     certItem.appendChild(rightDiv);
     certList.appendChild(certItem);
   });
-  
+
   container.style.display = "block";
 }
 
@@ -332,7 +338,7 @@ async function splitCertChain() {
 
     const certs = data.data.certs;
     const count = data.data.count || certs.length;
-    
+
     renderCertList(certs);
     setStatus(`完成，共拆分出 ${count} 个证书`, "ok");
   } catch (e) {
@@ -487,7 +493,7 @@ async function minifyJSON() {
 
 function saveJSONToFile() {
   const outEl = $("output");
-  
+
   if (!outEl || !outEl.value.trim()) {
     setStatus("没有可保存的内容", "err");
     return;
@@ -591,11 +597,11 @@ function wireJSONPage() {
 
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body ? document.body.dataset.page : null;
-  
+
   if (page) {
     renderNav(page);
   }
-  
+
   if (page === "csr") {
     wireCSRPage();
   }

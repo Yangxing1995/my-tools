@@ -29,6 +29,7 @@ func (s *Service) SplitCertChainWithInfo(input string) ([]CertDetail, error) {
 			SerialNumber: info.SerialNumber,
 			Version:      info.Version,
 			IsCA:         info.IsCA,
+			Sha1:         info.Sha1,
 		}
 	}
 	return result, nil
