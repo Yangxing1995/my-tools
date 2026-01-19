@@ -238,3 +238,54 @@ a:hover { text-decoration: underline; }
     padding-top: 16px;
   }
 }
+
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: none;
+  padding: 20px;
+}
+
+.fullscreen-overlay.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.fullscreen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.fullscreen-title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.fullscreen-close {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.fullscreen-close:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.fullscreen-overlay .textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+}

@@ -64,6 +64,66 @@ async function copyToClipboard(text) {
     }
 }
 
+function openFullscreenOverlay(textarea, title) {
+  let overlay = document.getElementById("fullscreenOverlay");
+  
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "fullscreenOverlay";
+    overlay.className = "fullscreen-overlay";
+    
+    const header = document.createElement("div");
+    header.className = "fullscreen-header";
+    
+    const titleEl = document.createElement("div");
+    titleEl.className = "fullscreen-title";
+    
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "fullscreen-close";
+    closeBtn.textContent = "退出全屏 (ESC)";
+    
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+    
+    const clonedTextarea = document.createElement("textarea");
+    clonedTextarea.className = "textarea";
+    clonedTextarea.id = "fullscreenTextarea";
+    
+    overlay.appendChild(header);
+    overlay.appendChild(clonedTextarea);
+    document.body.appendChild(overlay);
+    
+    const closeFullscreen = () => {
+      textarea.value = clonedTextarea.value;
+      overlay.classList.remove("active");
+    };
+    
+    closeBtn.addEventListener("click", closeFullscreen);
+    
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        closeFullscreen();
+      }
+    });
+    
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay.classList.contains("active")) {
+        closeFullscreen();
+      }
+    });
+  }
+  
+  const titleEl = overlay.querySelector(".fullscreen-title");
+  const clonedTextarea = overlay.querySelector("#fullscreenTextarea");
+  
+  titleEl.textContent = title;
+  clonedTextarea.value = textarea.value;
+  clonedTextarea.readOnly = textarea.readOnly;
+  
+  overlay.classList.add("active");
+  clonedTextarea.focus();
+}
+
 function parseCSRFromInput(raw) {
   const s = (raw || "").trim();
   if (!s) return { csr: "", err: "输入为空" };
@@ -85,6 +145,7 @@ function parseCSRFromInput(raw) {
 async function formatCSR() {
   const btn = $("btnFormat");
   const btnCopy = $("btnCopy");
+  const btnToJSON = $("btnToJSON");
   const inEl = $("input");
   const outEl = $("output");
 
@@ -93,6 +154,7 @@ async function formatCSR() {
   setStatus("处理中...", "");
   if (btn) btn.disabled = true;
   if (btnCopy) btnCopy.disabled = true;
+  if (btnToJSON) btnToJSON.disabled = true;
 
   const parsed = parseCSRFromInput(inEl.value);
   if (parsed.err) {
@@ -125,6 +187,7 @@ async function formatCSR() {
     outEl.value = data.data.pem;
     setStatus("完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
+    if (btnToJSON) btnToJSON.disabled = false;
   } catch (e) {
     setStatus("请求失败：" + e.message, "err");
     outEl.value = "";
@@ -136,6 +199,7 @@ async function formatCSR() {
 function wireCSRPage() {
   const btn = $("btnFormat");
   const btnCopy = $("btnCopy");
+  const btnToJSON = $("btnToJSON");
   const btnClear = $("btnClear");
   const inEl = $("input");
   const outEl = $("output");
@@ -149,12 +213,32 @@ function wireCSRPage() {
     });
   }
 
+  if (btnToJSON && outEl) {
+    btnToJSON.addEventListener("click", async () => {
+      const pem = outEl.value.trim();
+      if (!pem) {
+        setStatus("输出为空，无法转换", "err");
+        return;
+      }
+      const jsonValue = pem.replace(/\n/g, "\\r\\n");
+      const jsonOutput = jsonValue
+      const ok = await copyToClipboard(jsonOutput);
+      if (ok) {
+        setStatus("已复制 JSON 格式到剪贴板", "ok");
+      } else {
+        outEl.value = jsonOutput;
+        setStatus("JSON 格式已显示在输出区域", "ok");
+      }
+    });
+  }
+
   if (btnClear) {
     btnClear.addEventListener("click", () => {
       if (inEl) inEl.value = "";
       if (outEl) outEl.value = "";
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
+      if (btnToJSON) btnToJSON.disabled = true;
     });
   }
 
@@ -559,29 +643,13 @@ function wireJSONPage() {
 
   if (btnFullscreenInput && inEl) {
     btnFullscreenInput.addEventListener("click", () => {
-      if (inEl.requestFullscreen) {
-        inEl.requestFullscreen();
-      } else if (inEl.webkitRequestFullscreen) {
-        inEl.webkitRequestFullscreen();
-      } else if (inEl.mozRequestFullScreen) {
-        inEl.mozRequestFullScreen();
-      } else if (inEl.msRequestFullscreen) {
-        inEl.msRequestFullscreen();
-      }
+      openFullscreenOverlay(inEl, "输入区域");
     });
   }
 
   if (btnFullscreenOutput && outEl) {
     btnFullscreenOutput.addEventListener("click", () => {
-      if (outEl.requestFullscreen) {
-        outEl.requestFullscreen();
-      } else if (outEl.webkitRequestFullscreen) {
-        outEl.webkitRequestFullscreen();
-      } else if (outEl.mozRequestFullScreen) {
-        outEl.mozRequestFullScreen();
-      } else if (outEl.msRequestFullscreen) {
-        outEl.msRequestFullscreen();
-      }
+      openFullscreenOverlay(outEl, "输出区域");
     });
   }
 
