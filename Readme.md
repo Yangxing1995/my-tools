@@ -1,118 +1,96 @@
 # my-tools
- 
- 本项目是一个本地运行的 Web 工具箱（Go + Gin）。
- 
- 目标：
- 
- - 把常用的证书/订单/账单等工具能力统一到一个本地网页里
- - 纯文本工具优先在前端实现，后端负责本地 CLI、文件、内部系统等能力
- - 单人自用优先：简单、可扩展、可测试
- 
- ## 快速开始
- 
- ### 启动服务
- 
- ```shell
- go run ./cmd/mytools
- ```
- 
- 默认监听：`http://127.0.0.1:8111`
- 
- 健康检查：
- 
- - `GET /healthz`
- 
-### 纯前端文本工具
 
-JSON、Base64、URL、证书 PEM 和 CSR PEM 等纯文本工具默认在浏览器端完成，不依赖后端 API。
+本项目是一个本地运行的 Web 工具箱，当前形态是 **Go + Gin 托管静态页面，纯文本工具在浏览器端实现**。
+
+## 目标
+
+- 把常用文本处理、编码转换、证书/CSR 查看能力统一到一个本地网页里。
+- 纯文本工具默认纯前端实现，不依赖后端 API。
+- 用户输入在浏览器端处理，避免上传到服务端或被服务器持久化留存。
+- 保持项目简单：无前端打包器、无 npm 运行时依赖、便于本地使用和测试。
+
+## 快速开始
+
+```shell
+go run ./cmd/mytools
+```
+
+默认监听：`http://127.0.0.1:8111`
+
+健康检查：
+
+- `GET /healthz`
+
+## 当前工具
+
+- JSON 格式化/压缩：支持从日志行或混杂文本中提取 JSON 后处理。
+- Base64 编解码：按 UTF-8 文本处理。
+- URL 编解码：处理 URL percent-encoding。
+- CSR 格式化/解析：规范化 PEM，展示 Subject、SAN、公钥和签名算法等字段。
+- 证书格式化/解析：拆分证书链，展示 Subject、Issuer、有效期、序列号、SHA1、公钥和签名算法等字段。
+
+## 纯前端实现约束
+
+新增纯文本工具时，默认放在前端实现：
+
+- 工具纯函数放在 `web/static/utils.js`。
+- 页面交互、DOM 更新、状态保存放在 `web/static/app.js`。
+- 对应单元测试放在 `web/static/utils.test.js`。
+- HTML 页面直接按顺序引入 `utils.js` 和 `app.js`，不引入打包器。
+- 工具处理过程不得把输入内容发送到后端 API，除非该工具明确声明需要服务端能力。
+- 浏览器侧可以按功能需要使用 `sessionStorage` 保存当前会话的临时页面状态；这些内容不应传给服务端。
 
 证书/CSR 规范化规则：
 
-- 兼容 `\\r\\n` / `\\n` / `\r\n` / `\r`，统一输出为 `\n`
-- 自动提取 header/footer 中间的 body（如果存在）
-- 去掉 body 中的空白字符（空格、tab、换行）
-- 按 64 字符换行输出
-- 输出始终带对应 PEM header/footer，且末尾带一个 `\n`
+- 兼容 `\\r\\n` / `\\n` / `\r\n` / `\r`，统一输出为 `\n`。
+- 自动提取 PEM header/footer 中间的 body。
+- 去掉 body 中的空白字符。
+- 按 64 字符换行输出。
+- 输出始终带对应 PEM header/footer，且末尾带一个 `\n`。
 
-证书和 CSR 的基础解析也在前端完成，当前覆盖 Subject、Issuer、有效期、序列号、SAN、公钥算法、签名算法等常用字段；SM2/国密能力后续通过前端库或 WASM 扩展。
+证书和 CSR 的基础 ASN.1/X.509 解析也在前端完成。SM2/国密能力后续可以通过前端库或 WASM 扩展，不引入服务端依赖。
 
- ## 设计思路（简化版）
+## 项目结构
 
- 这个项目采用一个很“朴素”的分层，目的是让后续不断加工具时不容易乱：
-
- - **domain（领域/业务规则）**：放“跟业务有关、跟技术无关”的纯逻辑与模型。
-   - 例如 CSR 的规范化、订单状态约束、账单参数规则等。
-   - 特点：尽量不依赖 `gin` / `net/http` / `os/exec`，更容易写单测。
- - **api（接口层）**：处理 HTTP 的输入输出，把请求参数转换成 domain 需要的输入，把 domain 输出转换成 JSON 响应。
-   - 例如 `ShouldBindJSON`、返回统一的 `{ok,data,error}`。
- - **infra（基础设施）**：跟“外部世界”打交道的实现。
-   - 例如后面要做的本地 CLI 执行封装（超时、stdout/stderr、exit code 等）。
-
- 简单理解：
-
- - **domain** 决定“怎么做才算对”
- - **api** 负责“怎么对外提供服务”
- - **infra** 负责“怎么调用系统能力/外部工具”
-
- ## 工具实现约束
-
- 后续新增工具时，默认按能力边界选择实现位置：
-
- - **纯文本工具默认使用纯前端实现**：例如 CSR/证书 PEM 格式化、JSON 格式化/压缩、Base64、URL 编解码、时间戳转换、Hash 计算、文本去重排序等。
- - **需要本地能力的工具使用后端实现**：例如调用本地 CLI、读写本地文件、生成导出产物、访问内部系统/API、使用服务端密钥或环境变量等。
- - **前端优先但可保留后端兜底**：如果某个纯文本工具在浏览器端实现成本过高，或依赖 Go 标准库能力更可靠，可以先保留后端接口，但应在功能说明中明确原因。
- - **安全边界**：涉及账号、密钥、证书私钥、内部接口凭证的能力不得放到纯前端。
- 
- ## 项目结构（骨架）
- 
- ```text
- cmd/mytools/                 # 程序入口
-internal/server/             # gin engine、路由组装
-internal/api/http/           # 统一响应结构
-internal/api/v1/             # v1 路由聚合
-internal/infra/execx/        # （规划中）统一 CLI 执行封装
-web/static/                  # 静态网页和纯前端文本工具
+```text
+cmd/mytools/                 # 程序入口
+internal/server/             # Gin engine、静态页面路由、健康检查
+internal/api/http/           # 预留的统一响应结构
+internal/api/v1/             # 预留的 v1 API 路由聚合
+web/static/index.html        # 首页
+web/static/*.html            # 各工具页面
+web/static/app.js            # 页面交互逻辑
+web/static/utils.js          # 纯前端工具函数
+web/static/utils.test.js     # 纯前端工具单元测试
+web/static/style.css         # 样式
 ```
- 
- ## 测试
- 
-当前推荐仅跑新骨架相关测试：
+
+## 测试
 
 ```shell
-go test ./internal/...
+node --check web/static/utils.js
+node --check web/static/app.js
 node --test web/static/utils.test.js
+go test ./...
 ```
- 
- ## Build
- 
- 你可以按目标系统交叉编译：
- 
- ```shell
- CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 go build ./cmd/mytools
- ```
- 
- ## Roadmap（下一步规划）
- 
- ### 1. 统一 CLI Runner（execx）
- 
- - 提供通用执行能力：超时、stdout/stderr 捕获、exit code、输出大小限制、工作目录、env
- - 业务模块禁止直接 `os/exec`，统一走 `execx`
- 
- ### 2. 导出账单工具（调用本地 CLI）
- 
- - `POST /api/v1/billing/export`
- - 先做同步导出（快），如需要再升级异步任务
- 
- ### 3. Setigo 订单查询/操作工具（调用本地 CLI）
- 
- - 查询：`GET /api/v1/setigo/orders` / `GET /api/v1/setigo/orders/{id}`
- - 操作：`POST /api/v1/setigo/orders/{id}:action`
- 
- ### 4. Web UI
- 
- - 首页：工具列表 + 搜索
- - 每个工具一个页面：输入区、输出区、复制/下载
- 
- ### 5. 配置化
- 
- - 端口、CLI 路径、默认超时、工作目录等支持通过 env/flag/yaml 配置
+
+## Build
+
+Linux amd64 示例：
+
+```shell
+CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o dist/mytools-linux-amd64 ./cmd/mytools
+```
+
+本地构建：
+
+```shell
+go build ./cmd/mytools
+```
+
+## 后续方向
+
+- 继续补纯前端文本工具，例如时间戳、Hash、文本去重排序。
+- 证书/CSR 解析层补充更多 OID 和扩展字段。
+- 评估通过前端库或 WASM 支持 SM2/SM3/国密验签。
+- 端口、静态资源目录等运行参数支持配置化。

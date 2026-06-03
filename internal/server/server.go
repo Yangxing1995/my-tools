@@ -43,10 +43,6 @@ func New() *Server {
 	e.GET("/url", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "url.html"))
 	})
-	// Sectigo 页面
-	e.GET("/sectigo", func(c *gin.Context) {
-		c.File(filepath.Join(staticDir, "sectigo.html"))
-	})
 
 	e.GET("/healthz", func(c *gin.Context) {
 		c.Status(http.StatusOK)
