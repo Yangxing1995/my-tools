@@ -2,28 +2,244 @@ function $(id) {
   return document.getElementById(id);
 }
 
-function renderNav(activePage) {
-  const navItems = [
-    { href: "/", label: "首页", page: "home" },
-    { href: "/csr", label: "CSR 格式化", page: "csr" },
-    { href: "/cert", label: "证书格式化", page: "cert" },
-    { href: "/json", label: "JSON 格式化", page: "json" },
-    { href: "/base64", label: "Base64", page: "base64" },
-    { href: "/url", label: "URL 编码", page: "url" }
-  ];
+const toolCatalog = [
+  {
+    name: "JSON 格式化",
+    href: "/json",
+    category: "数据处理",
+    desc: "格式化、压缩和校验 JSON 数据",
+    tags: ["json", "format", "minify", "格式化", "压缩", "校验"]
+  },
+  {
+    name: "CSR 格式化",
+    href: "/csr",
+    category: "证书工具",
+    desc: "输入 JSON 或原始 CSR，输出规范化 PEM",
+    tags: ["csr", "pem", "证书请求", "格式化"]
+  },
+  {
+    name: "证书格式化",
+    href: "/cert",
+    category: "证书工具",
+    desc: "拆分证书链并查看证书信息",
+    tags: ["cert", "certificate", "pem", "证书链", "x509"]
+  },
+  {
+    name: "Base64 编解码",
+    href: "/base64",
+    category: "编码转换",
+    desc: "UTF-8 文本 Base64 编码和解码",
+    tags: ["base64", "b64", "编码", "解码"]
+  },
+  {
+    name: "URL 编解码",
+    href: "/url",
+    category: "编码转换",
+    desc: "URL 参数和文本片段 percent-encoding 编解码",
+    tags: ["url", "uri", "encode", "decode", "编码", "解码"]
+  }
+];
 
-  const navEl = document.querySelector(".nav");
-  if (!navEl) return;
+const categoryOrder = ["编码转换", "证书工具", "数据处理", "本地工具"];
+let activeToolCategory = "全部";
 
-  navEl.innerHTML = "";
-  navItems
-    .filter(item => item.page !== activePage)
-    .forEach(item => {
-      const a = document.createElement("a");
-      a.href = item.href;
-      a.textContent = item.label;
-      navEl.appendChild(a);
+function matchesTool(tool, query) {
+  if (!query) return true;
+  const haystack = [tool.name, tool.category, tool.desc, ...(tool.tags || [])].join(" ").toLowerCase();
+  return haystack.includes(query.toLowerCase());
+}
+
+function toolsForCategory(category) {
+  if (category === "全部") return toolCatalog;
+  return toolCatalog.filter(tool => tool.category === category);
+}
+
+function pageFromHref(href) {
+  return href.replace(/^\//, "") || "home";
+}
+
+function renderSidebarTools(query, activePage) {
+  const el = $("appSidebarTools");
+  if (!el) return;
+
+  const normalizedQuery = (query || "").trim();
+  el.innerHTML = "";
+
+  const home = document.createElement("a");
+  home.className = "app-sidebar-home";
+  home.href = "/";
+  home.classList.toggle("active", activePage === "home");
+  home.innerHTML = `<span>首页</span><small>全部工具概览</small>`;
+  el.appendChild(home);
+
+  categoryOrder
+    .filter(category => toolCatalog.some(tool => tool.category === category))
+    .forEach(category => {
+      const tools = toolsForCategory(category).filter(tool => matchesTool(tool, normalizedQuery));
+      if (normalizedQuery && tools.length === 0) return;
+
+      const details = document.createElement("details");
+      details.className = "app-sidebar-group";
+      details.open = normalizedQuery || tools.some(tool => pageFromHref(tool.href) === activePage);
+
+      const summary = document.createElement("summary");
+      summary.className = "app-sidebar-category";
+      summary.innerHTML = `<span>${category}</span><span>${tools.length}</span>`;
+
+      const list = document.createElement("div");
+      list.className = "app-sidebar-list";
+
+      tools.forEach(tool => {
+        const a = document.createElement("a");
+        a.href = tool.href;
+        a.className = "app-sidebar-tool";
+        a.classList.toggle("active", pageFromHref(tool.href) === activePage);
+        a.innerHTML = `<span>${tool.name}</span><small>${tool.desc}</small>`;
+        list.appendChild(a);
+      });
+
+      details.appendChild(summary);
+      details.appendChild(list);
+      el.appendChild(details);
     });
+}
+
+function renderAppShell(activePage) {
+  const existingShell = document.querySelector(".app-shell");
+  if (existingShell) {
+    renderSidebarTools("", activePage);
+    return;
+  }
+
+  const container = document.querySelector("body > .container");
+  if (!container) return;
+
+  const shell = document.createElement("div");
+  shell.className = "app-shell";
+
+  const sidebar = document.createElement("aside");
+  sidebar.className = "app-sidebar";
+  sidebar.innerHTML = `
+    <div class="app-sidebar-brand">
+      <strong>Wrench</strong>
+      <span>工具箱</span>
+    </div>
+    <div class="app-sidebar-search">
+      <input id="appToolSearch" type="search" placeholder="搜索工具" autocomplete="off">
+      <button class="btn" id="appToolSearchClear">清空</button>
+    </div>
+    <nav id="appSidebarTools" class="app-sidebar-tools" aria-label="工具列表"></nav>
+  `;
+
+  const main = document.createElement("main");
+  main.className = "app-main";
+
+  document.body.insertBefore(shell, container);
+  main.appendChild(container);
+  shell.appendChild(sidebar);
+  shell.appendChild(main);
+
+  const search = $("appToolSearch");
+  const clear = $("appToolSearchClear");
+
+  if (search) {
+    search.addEventListener("input", () => renderSidebarTools(search.value, activePage));
+    search.addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      const firstTool = document.querySelector(".app-sidebar-tool:not([hidden])");
+      if (firstTool) {
+        e.preventDefault();
+        firstTool.click();
+      }
+    });
+  }
+
+  if (clear && search) {
+    clear.addEventListener("click", () => {
+      search.value = "";
+      search.focus();
+      renderSidebarTools("", activePage);
+    });
+  }
+
+  renderSidebarTools("", activePage);
+}
+
+function renderToolRow(tool) {
+  const a = document.createElement("a");
+  a.className = "tool-row";
+  a.href = tool.href;
+
+  const text = document.createElement("span");
+  text.className = "tool-row-main";
+
+  const name = document.createElement("span");
+  name.className = "tool-row-name";
+  name.textContent = tool.name;
+
+  const desc = document.createElement("span");
+  desc.className = "tool-row-desc";
+  desc.textContent = tool.desc;
+
+  const meta = document.createElement("span");
+  meta.className = "tool-row-meta";
+  meta.textContent = tool.category;
+
+  const arrow = document.createElement("span");
+  arrow.className = "tool-row-arrow";
+  arrow.textContent = "打开";
+
+  text.appendChild(name);
+  text.appendChild(desc);
+  a.appendChild(text);
+  a.appendChild(meta);
+  a.appendChild(arrow);
+
+  return a;
+}
+
+function renderHomeTools() {
+  const filtered = toolsForCategory(activeToolCategory);
+
+  const title = $("toolListTitle");
+  if (title) {
+    title.textContent = activeToolCategory === "全部" ? "全部工具" : activeToolCategory;
+  }
+
+  const resultCount = $("toolResultCount");
+  if (resultCount) {
+    resultCount.textContent = `${filtered.length} 个`;
+  }
+
+  const groups = $("toolGroups");
+  const empty = $("emptyTools");
+  if (!groups || !empty) return;
+
+  groups.innerHTML = "";
+  empty.hidden = filtered.length > 0;
+
+  const categories = [...new Set(filtered.map(tool => tool.category))];
+  categories.forEach(category => {
+    const section = document.createElement("section");
+    section.className = "tool-group";
+
+    const heading = document.createElement("h3");
+    heading.textContent = category;
+    section.appendChild(heading);
+
+    const list = document.createElement("div");
+    list.className = "tool-list";
+    filtered
+      .filter(tool => tool.category === category)
+      .forEach(tool => list.appendChild(renderToolRow(tool)));
+
+    section.appendChild(list);
+    groups.appendChild(section);
+  });
+}
+
+function wireHomePage() {
+  renderHomeTools();
 }
 
 function setStatus(msg, type) {
@@ -869,11 +1085,15 @@ function wireURLPage() {
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body ? document.body.dataset.page : null;
 
+  renderAppShell(page || "home");
+
   if (page) {
-    renderNav(page);
     restorePageState(page);
   }
 
+  if (page === "home") {
+    wireHomePage();
+  }
   if (page === "csr") {
     wireCSRPage();
   }
