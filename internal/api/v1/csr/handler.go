@@ -26,4 +26,20 @@ func Register(r *gin.RouterGroup) {
 
 		c.JSON(http.StatusOK, httpapi.OK(FormatCSRResponse{PEM: pem}))
 	})
+
+	g.POST("/parse", func(c *gin.Context) {
+		var req ParseCSRRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, httpapi.Fail("bad_request", err.Error()))
+			return
+		}
+
+		info, err := svc.ParseCSR(req.CSR)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, httpapi.Fail("invalid_csr", err.Error()))
+			return
+		}
+
+		c.JSON(http.StatusOK, httpapi.OK(info))
+	})
 }

@@ -455,6 +455,15 @@ async function copyToClipboard(text) {
     }
 }
 
+function escapeHTML(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function openFullscreenOverlay(textarea, title) {
   let overlay = document.getElementById("fullscreenOverlay");
   
@@ -536,6 +545,7 @@ function parseCSRFromInput(raw) {
 
 async function formatCSR() {
   const btn = $("btnFormat");
+  const btnParse = $("btnParse");
   const btnCopy = $("btnCopy");
   const btnToJSON = $("btnToJSON");
   const inEl = $("input");
@@ -545,6 +555,7 @@ async function formatCSR() {
 
   setStatus("处理中...", "");
   if (btn) btn.disabled = true;
+  if (btnParse) btnParse.disabled = true;
   if (btnCopy) btnCopy.disabled = true;
   if (btnToJSON) btnToJSON.disabled = true;
 
@@ -580,17 +591,112 @@ async function formatCSR() {
     setStatus("完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnToJSON) btnToJSON.disabled = false;
+    parseCSR(data.data.pem, { quiet: true });
   } catch (e) {
     setStatus("请求失败：" + e.message, "err");
     outEl.value = "";
   } finally {
     persistPageState();
     if (btn) btn.disabled = false;
+    if (btnParse) btnParse.disabled = false;
+  }
+}
+
+function renderCSRInfo(info) {
+  const el = $("csrInfo");
+  if (!el) return;
+
+  const value = v => {
+    if (Array.isArray(v)) return v.length > 0 ? v.join(", ") : "N/A";
+    if (v === 0) return "N/A";
+    return v || "N/A";
+  };
+
+  const rows = [
+    ["Subject", value(info.subject)],
+    ["Common Name", value(info.commonName)],
+    ["Country", value(info.country)],
+    ["Organization", value(info.organization)],
+    ["Organizational Unit", value(info.organizationalUnit)],
+    ["Locality", value(info.locality)],
+    ["Province", value(info.province)],
+    ["DNS SAN", value(info.dnsNames)],
+    ["Email SAN", value(info.emailAddresses)],
+    ["IP SAN", value(info.ipAddresses)],
+    ["URI SAN", value(info.uris)],
+    ["Public Key", info.publicKeySize ? `${value(info.publicKeyAlgorithm)} ${info.publicKeySize} bits` : value(info.publicKeyAlgorithm)],
+    ["Signature", value(info.signatureAlgorithm)]
+  ];
+
+  el.classList.remove("empty-state");
+  el.innerHTML = rows.map(([label, content]) => `
+    <div class="info-item">
+      <div class="info-label">${label}</div>
+      <div class="info-value">${escapeHTML(content)}</div>
+    </div>
+  `).join("");
+}
+
+function resetCSRInfo() {
+  const el = $("csrInfo");
+  if (!el) return;
+  el.classList.add("empty-state");
+  el.textContent = "暂无解析结果";
+}
+
+async function parseCSR(input, options = {}) {
+  const btn = $("btnParse");
+  const inEl = $("input");
+  const outEl = $("output");
+  const csrText = (input || (outEl && outEl.value) || (inEl && inEl.value) || "").trim();
+
+  if (!csrText) {
+    if (!options.quiet) setStatus("输入为空", "err");
+    resetCSRInfo();
+    return;
+  }
+
+  if (!options.quiet) setStatus("解析中...", "");
+  if (btn) btn.disabled = true;
+
+  try {
+    const resp = await fetch("/api/v1/csr/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csr: csrText })
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) {
+      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
+      if (!options.quiet) setStatus(msg, "err");
+      resetCSRInfo();
+      return;
+    }
+
+    if (!data || !data.ok || !data.data) {
+      if (!options.quiet) setStatus("响应格式不正确", "err");
+      resetCSRInfo();
+      return;
+    }
+
+    renderCSRInfo(data.data);
+    if (outEl && !outEl.value && data.data.pem) {
+      outEl.value = data.data.pem;
+      persistPageState();
+    }
+    if (!options.quiet) setStatus("解析完成", "ok");
+  } catch (e) {
+    if (!options.quiet) setStatus("请求失败：" + e.message, "err");
+    resetCSRInfo();
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
 function wireCSRPage() {
   const btn = $("btnFormat");
+  const btnParse = $("btnParse");
   const btnCopy = $("btnCopy");
   const btnToJSON = $("btnToJSON");
   const btnClear = $("btnClear");
@@ -598,6 +704,7 @@ function wireCSRPage() {
   const outEl = $("output");
 
   if (btn) btn.addEventListener("click", formatCSR);
+  if (btnParse) btnParse.addEventListener("click", () => parseCSR());
 
   if (btnCopy && outEl) {
     btnCopy.addEventListener("click", async () => {
@@ -633,6 +740,7 @@ function wireCSRPage() {
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
       if (btnToJSON) btnToJSON.disabled = true;
+      resetCSRInfo();
       persistPageState();
     });
   }

@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>CSR 格式化 - Wrench</title>
-    <link rel="stylesheet" href="/static/style.css?v=app-shell-3"/>
+    <link rel="stylesheet" href="/static/style.css?v=app-shell-4"/>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 </head>
 <body data-page="csr">
@@ -20,6 +20,7 @@
         <div class="card half">
             <div class="toolbar">
                 <button class="btn primary" id="btnFormat">格式化</button>
+                <button class="btn" id="btnParse">解析</button>
                 <button class="btn" id="btnClear">清空</button>
                 <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span
                         class="kbd">Enter</span></div>
@@ -41,16 +42,22 @@
         </div>
 
         <div class="card">
+            <h2>解析结果</h2>
+            <div id="csrInfo" class="info-grid empty-state">暂无解析结果</div>
+        </div>
+
+        <div class="card">
             <h2>说明</h2>
             <p>
                 如果你输入的是 JSON，请保证字段名为 <span class="kbd">csr</span>。
                 本页面会把常见的换行表示（<span class="kbd">\\r\\n</span> / <span class="kbd">\\n</span> / <span
                     class="kbd">\r\n</span>）统一成 <span class="kbd">\n</span>。
+                解析会展示 Subject、SAN、公钥和签名算法等信息。
             </p>
         </div>
     </div>
 </div>
 
-<script src="/static/app.js?v=app-shell-3"></script>
+<script src="/static/app.js?v=app-shell-4"></script>
 </body>
 </html>

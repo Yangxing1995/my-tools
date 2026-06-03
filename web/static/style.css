@@ -472,6 +472,34 @@ a:hover { text-decoration: underline; }
   font-size: 13px;
 }
 
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 11, 20, 0.28);
+  padding: 12px;
+  min-width: 0;
+}
+
+.info-label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.info-value {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
 @media (max-width: 780px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -494,6 +522,10 @@ a:hover { text-decoration: underline; }
 
   .tool-row {
     min-height: 0;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
   }
 }
 
