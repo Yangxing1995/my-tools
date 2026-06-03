@@ -144,8 +144,8 @@ function renderAppShell(activePage) {
     <div class="app-sidebar-brand">
       <img class="app-sidebar-logo" src="/static/favicon.svg" alt="" aria-hidden="true">
       <div class="app-sidebar-brand-text">
-        <strong>Wrench</strong>
-        <span>纯前端文本工具箱</span>
+        <strong>Wrench </strong>
+        <span>🔒 无数据上传</span>
       </div>
     </div>
     <div class="app-sidebar-search">
