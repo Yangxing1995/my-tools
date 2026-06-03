@@ -34,6 +34,58 @@ function setStatus(msg, type) {
   el.textContent = msg || "";
 }
 
+function currentPage() {
+  return document.body ? document.body.dataset.page : "";
+}
+
+function storageKey(page, id) {
+  return `mytools:${page}:${id}`;
+}
+
+function persistField(el) {
+  const page = currentPage();
+  if (!page || !el || !el.id) return;
+
+  const key = storageKey(page, el.id);
+  if (el.value) {
+    sessionStorage.setItem(key, el.value);
+  } else {
+    sessionStorage.removeItem(key);
+  }
+}
+
+function persistPageState() {
+  document.querySelectorAll("textarea[id]").forEach(persistField);
+}
+
+function restorePageState(page) {
+  if (!page) return;
+
+  document.querySelectorAll("textarea[id]").forEach(el => {
+    const value = sessionStorage.getItem(storageKey(page, el.id));
+    if (value !== null) {
+      el.value = value;
+    }
+    el.addEventListener("input", () => persistField(el));
+  });
+}
+
+function syncRestoredControls() {
+  const outEl = $("output");
+  if (outEl && outEl.value) {
+    ["btnCopy", "btnToJSON", "btnSave"].forEach(id => {
+      const btn = $(id);
+      if (btn) btn.disabled = false;
+    });
+  }
+
+  const log = $("sectigoLog");
+  const btnCopyLog = $("btnCopyLog");
+  if (log && log.value && btnCopyLog) {
+    btnCopyLog.disabled = false;
+  }
+}
+
 async function copyToClipboard(text) {
     if (!text) return false;
 
@@ -97,6 +149,7 @@ function openFullscreenOverlay(textarea, title) {
     
     const closeFullscreen = () => {
       textarea.value = clonedTextarea.value;
+      persistField(textarea);
       overlay.classList.remove("active");
     };
     
@@ -194,6 +247,7 @@ async function formatCSR() {
     setStatus("请求失败：" + e.message, "err");
     outEl.value = "";
   } finally {
+    persistPageState();
     if (btn) btn.disabled = false;
   }
 }
@@ -229,6 +283,7 @@ function wireCSRPage() {
         setStatus("已复制 JSON 格式到剪贴板", "ok");
       } else {
         outEl.value = jsonOutput;
+        persistPageState();
         setStatus("JSON 格式已显示在输出区域", "ok");
       }
     });
@@ -241,6 +296,7 @@ function wireCSRPage() {
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
       if (btnToJSON) btnToJSON.disabled = true;
+      persistPageState();
     });
   }
 
@@ -453,6 +509,7 @@ function wireCertPage() {
       const certList = $("certList");
       if (certList) certList.innerHTML = "";
       setStatus("", "");
+      persistPageState();
     });
   }
 
@@ -519,6 +576,7 @@ async function formatJSON() {
     setStatus("请求失败：" + e.message, "err");
     outEl.value = "";
   } finally {
+    persistPageState();
     if (btn) btn.disabled = false;
   }
 }
@@ -573,6 +631,7 @@ async function minifyJSON() {
     setStatus("请求失败：" + e.message, "err");
     outEl.value = "";
   } finally {
+    persistPageState();
     if (btn) btn.disabled = false;
   }
 }
@@ -640,6 +699,7 @@ function wireJSONPage() {
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
       if (btnSave) btnSave.disabled = true;
+      persistPageState();
     });
   }
 
@@ -715,6 +775,8 @@ function runTextTransform(transform, doneMessage) {
     outEl.value = "";
     setStatus("处理失败：" + e.message, "err");
     if (btnCopy) btnCopy.disabled = true;
+  } finally {
+    persistPageState();
   }
 }
 
@@ -748,6 +810,7 @@ function wireTextToolPage(actions) {
       if (outEl) outEl.value = "";
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
+      persistPageState();
     });
   }
 
@@ -808,6 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (page) {
     renderNav(page);
+    restorePageState(page);
   }
 
   if (page === "csr") {
@@ -828,6 +892,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (page === "sectigo") {
     wireSectigoPage();
   }
+
+  syncRestoredControls();
 });
 
 function setSectigoStatus(msg, type) {
@@ -925,6 +991,7 @@ async function runSectigo() {
     setSectigoStatus("请求失败：" + e.message, "err");
     log.value = "";
   } finally {
+    persistPageState();
     if (btnRun) btnRun.disabled = false;
   }
 }
@@ -965,6 +1032,7 @@ function wireSectigoPage() {
       if (meta) meta.textContent = "";
       setFiles("", []);
       if (btnCopy) btnCopy.disabled = true;
+      persistPageState();
     });
   }
 
