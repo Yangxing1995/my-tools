@@ -22,38 +22,19 @@
  
  - `GET /healthz`
  
- ### CSR 格式化（JSON -> PEM）
- 
- API：
- 
- - `POST /api/v1/csr/format`
- 
- Request JSON：
- 
- ```json
- {
-   "csr": "-----BEGIN CERTIFICATE REQUEST-----\\r\\nMIID...\\r\\n-----END CERTIFICATE REQUEST-----\\r\\n"
- }
- ```
- 
- Response JSON：
- 
- ```json
- {
-   "ok": true,
-   "data": {
-     "pem": "-----BEGIN CERTIFICATE REQUEST-----\nMIID...\n-----END CERTIFICATE REQUEST-----\n"
-   }
- }
- ```
- 
- CSR 规范化规则（当前实现）：
- 
- - 兼容 `\\r\\n` / `\\n` / `\r\n` / `\r`，统一输出为 `\n`
- - 自动提取 header/footer 中间的 body（如果存在）
- - 去掉 body 中的空白字符（空格、tab、换行）
- - 按 64 字符换行输出
- - 输出始终带 CSR header/footer，且末尾带一个 `\n`
+### 纯前端文本工具
+
+JSON、Base64、URL、证书 PEM 和 CSR PEM 等纯文本工具默认在浏览器端完成，不依赖后端 API。
+
+证书/CSR 规范化规则：
+
+- 兼容 `\\r\\n` / `\\n` / `\r\n` / `\r`，统一输出为 `\n`
+- 自动提取 header/footer 中间的 body（如果存在）
+- 去掉 body 中的空白字符（空格、tab、换行）
+- 按 64 字符换行输出
+- 输出始终带对应 PEM header/footer，且末尾带一个 `\n`
+
+证书和 CSR 的基础解析也在前端完成，当前覆盖 Subject、Issuer、有效期、序列号、SAN、公钥算法、签名算法等常用字段；SM2/国密能力后续通过前端库或 WASM 扩展。
 
  ## 设计思路（简化版）
 
@@ -86,22 +67,21 @@
  
  ```text
  cmd/mytools/                 # 程序入口
- internal/server/             # gin engine、路由组装
- internal/api/http/           # 统一响应结构
- internal/api/v1/             # v1 路由聚合
- internal/api/v1/csr/         # CSR 功能（HTTP + Service + DTO）
- internal/domain/csr/         # CSR 领域纯逻辑（可单测）
- internal/infra/execx/        # （规划中）统一 CLI 执行封装
- web/static/                  # （规划中）静态网页
- ```
+internal/server/             # gin engine、路由组装
+internal/api/http/           # 统一响应结构
+internal/api/v1/             # v1 路由聚合
+internal/infra/execx/        # （规划中）统一 CLI 执行封装
+web/static/                  # 静态网页和纯前端文本工具
+```
  
  ## 测试
  
- 当前推荐仅跑新骨架相关测试：
- 
- ```shell
- go test ./internal/...
- ```
+当前推荐仅跑新骨架相关测试：
+
+```shell
+go test ./internal/...
+node --test web/static/utils.test.js
+```
  
  ## Build
  

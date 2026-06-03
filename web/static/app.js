@@ -2,6 +2,19 @@ function $(id) {
   return document.getElementById(id);
 }
 
+const {
+  normalizePEM,
+  splitCertificatePEMs,
+  parseCertificatePEM,
+  parseCSRPEM,
+  formatJSONText,
+  minifyJSONText,
+  utf8ToBase64,
+  base64ToUtf8,
+  encodeURLText,
+  decodeURLText
+} = window.MyToolsUtils || {};
+
 const toolCatalog = [
   {
     name: "JSON 格式化",
@@ -611,7 +624,7 @@ function parseCSRFromInput(raw) {
   return { csr: s };
 }
 
-async function formatCSR() {
+function formatCSR() {
   const btn = $("btnFormat");
   const btnParse = $("btnParse");
   const btnCopy = $("btnCopy");
@@ -635,33 +648,14 @@ async function formatCSR() {
   }
 
   try {
-    const resp = await fetch("/api/v1/csr/format", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csr: parsed.csr })
-    });
-
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
-      setStatus(msg, "err");
-      outEl.value = "";
-      return;
-    }
-
-    if (!data || !data.ok || !data.data || typeof data.data.pem !== "string") {
-      setStatus("响应格式不正确", "err");
-      outEl.value = "";
-      return;
-    }
-
-    outEl.value = data.data.pem;
+    const pem = normalizePEM(parsed.csr, "csr");
+    outEl.value = pem;
     setStatus("完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnToJSON) btnToJSON.disabled = false;
-    parseCSR(data.data.pem, { quiet: true });
+    parseCSR(pem, { quiet: true });
   } catch (e) {
-    setStatus("请求失败：" + e.message, "err");
+    setStatus(e.message, "err");
     outEl.value = "";
   } finally {
     persistPageState();
@@ -728,34 +722,15 @@ async function parseCSR(input, options = {}) {
   if (btn) btn.disabled = true;
 
   try {
-    const resp = await fetch("/api/v1/csr/parse", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csr: csrText })
-    });
-
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
-      if (!options.quiet) setStatus(msg, "err");
-      resetCSRInfo();
-      return;
-    }
-
-    if (!data || !data.ok || !data.data) {
-      if (!options.quiet) setStatus("响应格式不正确", "err");
-      resetCSRInfo();
-      return;
-    }
-
-    renderCSRInfo(data.data);
-    if (outEl && !outEl.value && data.data.pem) {
-      outEl.value = data.data.pem;
+    const info = parseCSRPEM(csrText);
+    renderCSRInfo(info);
+    if (outEl && !outEl.value && info.pem) {
+      outEl.value = info.pem;
       persistPageState();
     }
     if (!options.quiet) setStatus("解析完成", "ok");
   } catch (e) {
-    if (!options.quiet) setStatus("请求失败：" + e.message, "err");
+    if (!options.quiet) setStatus(e.message, "err");
     resetCSRInfo();
   } finally {
     if (btn) btn.disabled = false;
@@ -938,7 +913,7 @@ function renderCertList(certs) {
       },
       {
         title: "其他信息",
-        content: `<div><span class="cert-info-label">版本:</span>${cert.version || "N/A"}</div><div><span class="cert-info-label">是否CA:</span>${cert.isCA ? "是" : "否"}</div>`
+        content: `<div><span class="cert-info-label">版本:</span>${cert.version || "N/A"}</div><div><span class="cert-info-label">是否CA:</span>${cert.isCA ? "是" : "否"}</div><div><span class="cert-info-label">公钥:</span>${cert.publicKeySize ? `${cert.publicKeyAlgorithm} ${cert.publicKeySize} bits` : (cert.publicKeyAlgorithm || "N/A")}</div><div><span class="cert-info-label">签名:</span>${cert.signatureAlgorithm || "N/A"}</div>`
       }
     ];
 
@@ -986,31 +961,17 @@ async function splitCertChain() {
   }
 
   try {
-    const resp = await fetch("/api/v1/cert/split", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ certChain })
-    });
-
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
-      setStatus(msg, "err");
-      return;
+    const certPEMs = splitCertificatePEMs(certChain);
+    const certs = [];
+    for (const pem of certPEMs) {
+      certs.push(await parseCertificatePEM(pem));
     }
-
-    if (!data || !data.ok || !data.data || !Array.isArray(data.data.certs)) {
-      setStatus("响应格式不正确", "err");
-      return;
-    }
-
-    const certs = data.data.certs;
-    const count = data.data.count || certs.length;
+    const count = certs.length;
 
     renderCertList(certs);
     setStatus(`完成，共拆分出 ${count} 个证书`, "ok");
   } catch (e) {
-    setStatus("请求失败：" + e.message, "err");
+    setStatus(e.message, "err");
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -1046,84 +1007,6 @@ function wireCertPage() {
         splitCertChain();
       }
     });
-  }
-}
-
-function extractJSONText(input) {
-  const source = String(input || "").trim();
-  let startIdx = -1;
-  let startChar = "";
-
-  for (let i = 0; i < source.length; i += 1) {
-    const ch = source[i];
-    if (ch === "{" || ch === "[") {
-      startIdx = i;
-      startChar = ch;
-      break;
-    }
-  }
-
-  if (startIdx === -1) return source;
-
-  const endChar = startChar === "{" ? "}" : "]";
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = startIdx; i < source.length; i += 1) {
-    const ch = source[i];
-
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-
-    if (ch === "\\") {
-      escaped = true;
-      continue;
-    }
-
-    if (ch === "\"") {
-      inString = !inString;
-      continue;
-    }
-
-    if (inString) continue;
-
-    if (ch === startChar) {
-      depth += 1;
-    } else if (ch === endChar) {
-      depth -= 1;
-      if (depth === 0) {
-        return source.slice(startIdx, i + 1);
-      }
-    }
-  }
-
-  return source;
-}
-
-function formatJSONText(input, indent) {
-  const source = String(input || "").trim();
-  if (!source) throw new Error("输入为空");
-
-  const jsonText = extractJSONText(source);
-  try {
-    return JSON.stringify(JSON.parse(jsonText), null, Math.max(0, indent || 2));
-  } catch (e) {
-    throw new Error("invalid JSON: " + e.message);
-  }
-}
-
-function minifyJSONText(input) {
-  const source = String(input || "").trim();
-  if (!source) throw new Error("输入为空");
-
-  const jsonText = extractJSONText(source);
-  try {
-    return JSON.stringify(JSON.parse(jsonText));
-  } catch (e) {
-    throw new Error("invalid JSON: " + e.message);
   }
 }
 
@@ -1289,33 +1172,6 @@ function wireJSONPage() {
   }
 }
 
-function utf8ToBase64(text) {
-  const bytes = new TextEncoder().encode(text);
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, chunk);
-  }
-  return btoa(binary);
-}
-
-function base64ToUtf8(base64Text) {
-  let normalized = (base64Text || "")
-    .replace(/\s+/g, "")
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-  while (normalized.length % 4 !== 0) {
-    normalized += "=";
-  }
-  const binary = atob(normalized);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-}
-
 function runTextTransform(transform, doneMessage) {
   const inEl = $("input");
   const outEl = $("output");
@@ -1419,12 +1275,12 @@ function wireURLPage() {
   wireTextToolPage([
     {
       buttonId: "btnEncode",
-      transform: encodeURIComponent,
+      transform: encodeURLText,
       doneMessage: "编码完成"
     },
     {
       buttonId: "btnDecode",
-      transform: text => decodeURIComponent(text.replace(/\+/g, " ")),
+      transform: decodeURLText,
       doneMessage: "解码完成"
     }
   ]);
