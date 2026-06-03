@@ -381,18 +381,22 @@ function showContextMenu(x, y, actions, text) {
   menu.style.top = `${Math.max(8, top)}px`;
 }
 
-function wireJSONContextActions() {
-  const outEl = $("output");
-  if (!outEl) return;
+function bindJSONContextMenu(textarea) {
+  if (!textarea || textarea.dataset.jsonContextMenuBound === "1") return;
+  textarea.dataset.jsonContextMenuBound = "1";
 
-  outEl.addEventListener("contextmenu", e => {
-    const selected = getSelectedTextareaText(outEl);
+  textarea.addEventListener("contextmenu", e => {
+    const selected = getSelectedTextareaText(textarea);
     const actions = detectPemActions(selected);
     if (actions.length === 0) return;
 
     e.preventDefault();
     showContextMenu(e.clientX, e.clientY, actions, selected);
   });
+}
+
+function wireJSONContextActions() {
+  bindJSONContextMenu($("output"));
 
   document.addEventListener("click", hideContextMenu);
   document.addEventListener("keydown", e => {
@@ -581,6 +585,9 @@ function openFullscreenOverlay(textarea, title) {
   titleEl.textContent = title;
   clonedTextarea.value = textarea.value;
   clonedTextarea.readOnly = textarea.readOnly;
+  if (currentPage() === "json" && textarea.id === "output") {
+    bindJSONContextMenu(clonedTextarea);
+  }
   
   overlay.classList.add("active");
   clonedTextarea.focus();
