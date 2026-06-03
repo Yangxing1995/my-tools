@@ -64,6 +64,19 @@ test("URL encode and decode", () => {
   assert.equal(utils.decodeURLText("name%3D%E5%BC%A0%E4%B8%89%26x%3D1+2"), "name=张三&x=1 2");
 });
 
+test("toPGArray auto formats numeric IDs", () => {
+  assert.equal(utils.toPGArray("1\n2, 3，4"), "(1,2,3,4)");
+});
+
+test("toPGArray formats string IDs and escapes quotes", () => {
+  assert.equal(utils.toPGArray("Hjx1121 Nkjda O'Reilly"), "('Hjx1121','Nkjda','O''Reilly')");
+});
+
+test("toPGArray supports forced modes and duplicates", () => {
+  assert.equal(utils.toPGArray("1 1 2", { mode: "string", unique: false }), "('1','1','2')");
+  assert.throws(() => utils.toPGArray("1 A", { mode: "number" }), /数字模式包含非数字值/);
+});
+
 test("normalizePEM wraps escaped CSR input", () => {
   const body = sampleCSR
     .replace("-----BEGIN CERTIFICATE REQUEST-----", "")

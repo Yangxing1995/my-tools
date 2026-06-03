@@ -26,6 +26,7 @@ go run ./cmd/mytools
 - JSON 格式化/压缩：支持从日志行或混杂文本中提取 JSON 后处理。
 - Base64 编解码：按 UTF-8 文本处理。
 - URL 编解码：处理 URL percent-encoding。
+- PG Array 转换：把换行、逗号或空格分隔的一串 ID 转成 PostgreSQL 查询片段。
 - CSR 格式化/解析：规范化 PEM，展示 Subject、SAN、公钥和签名算法等字段。
 - 证书格式化/解析：拆分证书链，展示 Subject、Issuer、有效期、序列号、SHA1、公钥和签名算法等字段。
 

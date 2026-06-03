@@ -12,7 +12,8 @@ const {
   utf8ToBase64,
   base64ToUtf8,
   encodeURLText,
-  decodeURLText
+  decodeURLText,
+  toPGArray
 } = window.MyToolsUtils || {};
 
 const toolCatalog = [
@@ -50,10 +51,17 @@ const toolCatalog = [
     category: "编码转换",
     desc: "URL 参数和文本片段 percent-encoding 编解码",
     tags: ["url", "uri", "encode", "decode", "编码", "解码"]
+  },
+  {
+    name: "PG Array 转换",
+    href: "/pg-array",
+    category: "数据处理",
+    desc: "把一串 ID 转成 PostgreSQL IN 查询数组",
+    tags: ["postgres", "pg", "sql", "array", "in", "id", "数组"]
   }
 ];
 
-const categoryOrder = ["编码转换", "证书工具", "数据处理", "本地工具"];
+const categoryOrder = ["数据处理", "编码转换", "证书工具", "本地工具"];
 let activeToolCategory = "全部";
 
 function matchesTool(tool, query) {
@@ -1281,6 +1289,72 @@ function wireURLPage() {
   ]);
 }
 
+function currentPGArrayMode() {
+  const checked = document.querySelector("input[name='pgMode']:checked");
+  return checked ? checked.value : "auto";
+}
+
+function runPGArrayTransform() {
+  const uniqueEl = $("unique");
+  runTextTransform(
+    text => toPGArray(text, {
+      mode: currentPGArrayMode(),
+      unique: uniqueEl ? uniqueEl.checked : true
+    }),
+    "转换完成"
+  );
+}
+
+function wirePGArrayPage() {
+  const btnConvert = $("btnConvert");
+  const btnClear = $("btnClear");
+  const btnCopy = $("btnCopy");
+  const btnFullscreenInput = $("btnFullscreenInput");
+  const btnFullscreenOutput = $("btnFullscreenOutput");
+  const inEl = $("input");
+  const outEl = $("output");
+
+  if (btnConvert) btnConvert.addEventListener("click", runPGArrayTransform);
+
+  if (btnCopy && outEl) {
+    btnCopy.addEventListener("click", async () => {
+      const ok = await copyToClipboard(outEl.value);
+      setStatus(ok ? "已复制到剪贴板" : "复制失败（浏览器不支持或无权限）", ok ? "ok" : "err");
+    });
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (inEl) inEl.value = "";
+      if (outEl) outEl.value = "";
+      setStatus("", "");
+      if (btnCopy) btnCopy.disabled = true;
+      persistPageState();
+    });
+  }
+
+  if (btnFullscreenInput && inEl) {
+    btnFullscreenInput.addEventListener("click", () => {
+      openFullscreenOverlay(inEl, "输入区域");
+    });
+  }
+
+  if (btnFullscreenOutput && outEl) {
+    btnFullscreenOutput.addEventListener("click", () => {
+      openFullscreenOverlay(outEl, "输出区域");
+    });
+  }
+
+  if (inEl) {
+    inEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runPGArrayTransform();
+      }
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body ? document.body.dataset.page : null;
 
@@ -1309,6 +1383,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (page === "url") {
     wireURLPage();
+  }
+  if (page === "pg-array") {
+    wirePGArrayPage();
   }
   syncRestoredControls();
 });

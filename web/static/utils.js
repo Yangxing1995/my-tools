@@ -576,6 +576,55 @@
     return decodeURIComponent(String(text || "").replace(/\+/g, " "));
   }
 
+  function splitIDText(input) {
+    return String(input || "")
+      .replace(/[，、；;]/g, ",")
+      .split(/[\s,]+/)
+      .map(item => item.trim())
+      .filter(Boolean);
+  }
+
+  function isNumericID(value) {
+    return /^[-+]?(?:\d+|\d+\.\d+)$/.test(value);
+  }
+
+  function quoteSQLString(value) {
+    return "'" + String(value).replace(/'/g, "''") + "'";
+  }
+
+  function toPGArray(input, options = {}) {
+    const mode = options.mode || "auto";
+    const unique = options.unique !== false;
+    let items = splitIDText(input);
+
+    if (unique) {
+      items = Array.from(new Set(items));
+    }
+
+    if (items.length === 0) {
+      throw new Error("输入为空");
+    }
+
+    let effectiveMode = mode;
+    if (effectiveMode === "auto") {
+      effectiveMode = items.every(isNumericID) ? "number" : "string";
+    }
+
+    if (effectiveMode === "number") {
+      const invalid = items.find(item => !isNumericID(item));
+      if (invalid) {
+        throw new Error("数字模式包含非数字值：" + invalid);
+      }
+      return "(" + items.join(",") + ")";
+    }
+
+    if (effectiveMode === "string") {
+      return "(" + items.map(quoteSQLString).join(",") + ")";
+    }
+
+    throw new Error("未知输出模式");
+  }
+
   const api = {
     normalizeEscapedText,
     normalizePEM,
@@ -589,7 +638,9 @@
     utf8ToBase64,
     base64ToUtf8,
     encodeURLText,
-    decodeURLText
+    decodeURLText,
+    splitIDText,
+    toPGArray
   };
 
   root.MyToolsUtils = api;

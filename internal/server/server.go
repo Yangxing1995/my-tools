@@ -43,6 +43,10 @@ func New() *Server {
 	e.GET("/url", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "url.html"))
 	})
+	// PG Array 转换页面
+	e.GET("/pg-array", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "pg-array.html"))
+	})
 
 	e.GET("/healthz", func(c *gin.Context) {
 		c.Status(http.StatusOK)

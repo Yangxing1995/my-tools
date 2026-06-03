@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>PG Array 转换 - Wrench</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+</head>
+<body data-page="pg-array">
+<div class="container">
+    <div class="header">
+        <div class="brand">
+            <h1>PG Array 转换</h1>
+            <div class="sub">把一串 ID 转成 PostgreSQL IN 查询格式</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card half">
+            <h2>输入</h2>
+            <div class="toolbar">
+                <button class="btn primary" id="btnConvert">转换</button>
+                <button class="btn" id="btnClear">清空</button>
+                <button class="btn" id="btnFullscreenInput" title="全屏">全屏</button>
+                <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span class="kbd">Enter</span></div>
+            </div>
+            <div class="toolbar">
+                <label class="small"><input type="radio" name="pgMode" value="auto" checked> 自动</label>
+                <label class="small"><input type="radio" name="pgMode" value="string"> 字符串</label>
+                <label class="small"><input type="radio" name="pgMode" value="number"> 数字</label>
+                <label class="small"><input type="checkbox" id="unique" checked> 去重</label>
+            </div>
+            <textarea class="textarea" id="input" placeholder="粘贴 ID，支持换行、逗号、中文逗号、空格分隔，例如：
+
+1
+2
+3
+
+或：
+
+Hjx1121, Nkjda"></textarea>
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="card half">
+            <h2>输出</h2>
+            <div class="toolbar">
+                <button class="btn" id="btnCopy" disabled>复制</button>
+                <button class="btn" id="btnFullscreenOutput" title="全屏">全屏</button>
+            </div>
+            <textarea class="textarea" id="output" readonly placeholder="转换后的 SQL 片段将显示在这里，例如：(1,2) 或 ('Hjx1121','Nkjda')"></textarea>
+        </div>
+
+        <div class="card">
+            <h2>说明</h2>
+            <p>
+                自动模式会在所有输入都是数字时输出 <span class="kbd">(1,2)</span>，否则输出字符串形式。
+                字符串模式会自动转义单引号，例如 <span class="kbd">O'Reilly</span> 会变成 <span class="kbd">'O''Reilly'</span>。
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/utils.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
