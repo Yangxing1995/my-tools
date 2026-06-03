@@ -199,7 +199,9 @@ function renderToolRow(tool) {
 }
 
 function renderHomeTools() {
-  const filtered = toolsForCategory(activeToolCategory);
+  const search = $("homeToolSearch");
+  const query = search ? search.value.trim() : "";
+  const filtered = toolsForCategory(activeToolCategory).filter(tool => matchesTool(tool, query));
 
   const title = $("toolListTitle");
   if (title) {
@@ -239,7 +241,34 @@ function renderHomeTools() {
 }
 
 function wireHomePage() {
+  const search = $("homeToolSearch");
+  const clear = $("homeToolSearchClear");
+
   renderHomeTools();
+
+  if (search) {
+    search.addEventListener("input", () => {
+      renderHomeTools();
+      renderSidebarTools(search.value, "home");
+    });
+    search.addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      const firstTool = document.querySelector(".tool-row");
+      if (firstTool) {
+        e.preventDefault();
+        firstTool.click();
+      }
+    });
+  }
+
+  if (clear && search) {
+    clear.addEventListener("click", () => {
+      search.value = "";
+      search.focus();
+      renderHomeTools();
+      renderSidebarTools("", "home");
+    });
+  }
 }
 
 function setStatus(msg, type) {
