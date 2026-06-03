@@ -142,8 +142,11 @@ function renderAppShell(activePage) {
   sidebar.className = "app-sidebar";
   sidebar.innerHTML = `
     <div class="app-sidebar-brand">
-      <strong>Wrench</strong>
-      <span>工具箱</span>
+      <img class="app-sidebar-logo" src="/static/favicon.svg" alt="" aria-hidden="true">
+      <div class="app-sidebar-brand-text">
+        <strong>Wrench</strong>
+        <span>纯前端文本工具箱</span>
+      </div>
     </div>
     <div class="app-sidebar-search">
       <input id="appToolSearch" type="search" placeholder="搜索工具" autocomplete="off">
