@@ -7,7 +7,9 @@ function renderNav(activePage) {
     { href: "/", label: "首页", page: "home" },
     { href: "/csr", label: "CSR 格式化", page: "csr" },
     { href: "/cert", label: "证书格式化", page: "cert" },
-    { href: "/json", label: "JSON 格式化", page: "json" }
+    { href: "/json", label: "JSON 格式化", page: "json" },
+    { href: "/base64", label: "Base64", page: "base64" },
+    { href: "/url", label: "URL 编码", page: "url" }
   ];
 
   const navEl = document.querySelector(".nav");
@@ -663,6 +665,144 @@ function wireJSONPage() {
   }
 }
 
+function utf8ToBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
+}
+
+function base64ToUtf8(base64Text) {
+  let normalized = (base64Text || "")
+    .replace(/\s+/g, "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  while (normalized.length % 4 !== 0) {
+    normalized += "=";
+  }
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+}
+
+function runTextTransform(transform, doneMessage) {
+  const inEl = $("input");
+  const outEl = $("output");
+  const btnCopy = $("btnCopy");
+
+  if (!inEl || !outEl) return;
+
+  const text = inEl.value || "";
+  if (!text) {
+    setStatus("输入为空", "err");
+    outEl.value = "";
+    if (btnCopy) btnCopy.disabled = true;
+    return;
+  }
+
+  try {
+    outEl.value = transform(text);
+    setStatus(doneMessage, "ok");
+    if (btnCopy) btnCopy.disabled = false;
+  } catch (e) {
+    outEl.value = "";
+    setStatus("处理失败：" + e.message, "err");
+    if (btnCopy) btnCopy.disabled = true;
+  }
+}
+
+function wireTextToolPage(actions) {
+  const btnClear = $("btnClear");
+  const btnCopy = $("btnCopy");
+  const btnFullscreenInput = $("btnFullscreenInput");
+  const btnFullscreenOutput = $("btnFullscreenOutput");
+  const inEl = $("input");
+  const outEl = $("output");
+
+  actions.forEach(action => {
+    const btn = $(action.buttonId);
+    if (btn) {
+      btn.addEventListener("click", () => {
+        runTextTransform(action.transform, action.doneMessage);
+      });
+    }
+  });
+
+  if (btnCopy && outEl) {
+    btnCopy.addEventListener("click", async () => {
+      const ok = await copyToClipboard(outEl.value);
+      setStatus(ok ? "已复制到剪贴板" : "复制失败（浏览器不支持或无权限）", ok ? "ok" : "err");
+    });
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (inEl) inEl.value = "";
+      if (outEl) outEl.value = "";
+      setStatus("", "");
+      if (btnCopy) btnCopy.disabled = true;
+    });
+  }
+
+  if (btnFullscreenInput && inEl) {
+    btnFullscreenInput.addEventListener("click", () => {
+      openFullscreenOverlay(inEl, "输入区域");
+    });
+  }
+
+  if (btnFullscreenOutput && outEl) {
+    btnFullscreenOutput.addEventListener("click", () => {
+      openFullscreenOverlay(outEl, "输出区域");
+    });
+  }
+
+  if (inEl && actions.length > 0) {
+    inEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runTextTransform(actions[0].transform, actions[0].doneMessage);
+      }
+    });
+  }
+}
+
+function wireBase64Page() {
+  wireTextToolPage([
+    {
+      buttonId: "btnEncode",
+      transform: utf8ToBase64,
+      doneMessage: "编码完成"
+    },
+    {
+      buttonId: "btnDecode",
+      transform: base64ToUtf8,
+      doneMessage: "解码完成"
+    }
+  ]);
+}
+
+function wireURLPage() {
+  wireTextToolPage([
+    {
+      buttonId: "btnEncode",
+      transform: encodeURIComponent,
+      doneMessage: "编码完成"
+    },
+    {
+      buttonId: "btnDecode",
+      transform: text => decodeURIComponent(text.replace(/\+/g, " ")),
+      doneMessage: "解码完成"
+    }
+  ]);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body ? document.body.dataset.page : null;
 
@@ -678,6 +818,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (page === "json") {
     wireJSONPage();
+  }
+  if (page === "base64") {
+    wireBase64Page();
+  }
+  if (page === "url") {
+    wireURLPage();
   }
   if (page === "sectigo") {
     wireSectigoPage();

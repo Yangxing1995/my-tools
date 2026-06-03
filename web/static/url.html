@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>URL 编解码 - Wrench</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+</head>
+<body data-page="url">
+<div class="container">
+    <div class="header">
+        <div class="brand">
+            <h1>URL 编解码</h1>
+            <div class="sub">纯前端处理 URL percent-encoding 编码和解码</div>
+        </div>
+        <div class="nav"></div>
+    </div>
+
+    <div class="grid">
+        <div class="card half">
+            <h2>输入</h2>
+            <div class="toolbar">
+                <button class="btn primary" id="btnEncode">编码</button>
+                <button class="btn" id="btnDecode">解码</button>
+                <button class="btn" id="btnClear">清空</button>
+                <button class="btn" id="btnFullscreenInput" title="全屏">全屏</button>
+                <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span class="kbd">Enter</span></div>
+            </div>
+            <textarea class="textarea" id="input" placeholder="粘贴要编码的文本，或已编码的 URL 片段，例如：name=%E5%BC%A0%E4%B8%89"></textarea>
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="card half">
+            <h2>输出</h2>
+            <div class="toolbar">
+                <button class="btn" id="btnCopy" disabled>复制</button>
+                <button class="btn" id="btnFullscreenOutput" title="全屏">全屏</button>
+            </div>
+            <textarea class="textarea" id="output" readonly placeholder="处理后的结果将显示在这里"></textarea>
+        </div>
+
+        <div class="card">
+            <h2>说明</h2>
+            <p>
+                本工具使用浏览器标准 URL 编解码能力，适合处理查询参数值、路径片段和普通文本。
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

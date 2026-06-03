@@ -35,6 +35,14 @@ func New() *Server {
 	e.GET("/json", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "json.html"))
 	})
+	// Base64 编解码页面
+	e.GET("/base64", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "base64.html"))
+	})
+	// URL 编解码页面
+	e.GET("/url", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "url.html"))
+	})
 	// Sectigo 页面
 	e.GET("/sectigo", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "sectigo.html"))
