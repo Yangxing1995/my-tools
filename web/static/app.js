@@ -1049,7 +1049,85 @@ function wireCertPage() {
   }
 }
 
-async function formatJSON() {
+function extractJSONText(input) {
+  const source = String(input || "").trim();
+  let startIdx = -1;
+  let startChar = "";
+
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i];
+    if (ch === "{" || ch === "[") {
+      startIdx = i;
+      startChar = ch;
+      break;
+    }
+  }
+
+  if (startIdx === -1) return source;
+
+  const endChar = startChar === "{" ? "}" : "]";
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = startIdx; i < source.length; i += 1) {
+    const ch = source[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (ch === "\"") {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (ch === startChar) {
+      depth += 1;
+    } else if (ch === endChar) {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(startIdx, i + 1);
+      }
+    }
+  }
+
+  return source;
+}
+
+function formatJSONText(input, indent) {
+  const source = String(input || "").trim();
+  if (!source) throw new Error("输入为空");
+
+  const jsonText = extractJSONText(source);
+  try {
+    return JSON.stringify(JSON.parse(jsonText), null, Math.max(0, indent || 2));
+  } catch (e) {
+    throw new Error("invalid JSON: " + e.message);
+  }
+}
+
+function minifyJSONText(input) {
+  const source = String(input || "").trim();
+  if (!source) throw new Error("输入为空");
+
+  const jsonText = extractJSONText(source);
+  try {
+    return JSON.stringify(JSON.parse(jsonText));
+  } catch (e) {
+    throw new Error("invalid JSON: " + e.message);
+  }
+}
+
+function formatJSON() {
   const btn = $("btnFormat");
   const btnCopy = $("btnCopy");
   const btnSave = $("btnSave");
@@ -1074,32 +1152,12 @@ async function formatJSON() {
   const indent = indentSelect ? parseInt(indentSelect.value, 10) : 2;
 
   try {
-    const resp = await fetch("/api/v1/json/format", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: jsonText, indent })
-    });
-
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
-      setStatus(msg, "err");
-      outEl.value = "";
-      return;
-    }
-
-    if (!data || !data.ok || !data.data || typeof data.data.formatted !== "string") {
-      setStatus("响应格式不正确", "err");
-      outEl.value = "";
-      return;
-    }
-
-    outEl.value = data.data.formatted;
+    outEl.value = formatJSONText(jsonText, indent);
     setStatus("格式化完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
   } catch (e) {
-    setStatus("请求失败：" + e.message, "err");
+    setStatus(e.message, "err");
     outEl.value = "";
   } finally {
     persistPageState();
@@ -1107,7 +1165,7 @@ async function formatJSON() {
   }
 }
 
-async function minifyJSON() {
+function minifyJSON() {
   const btn = $("btnMinify");
   const btnCopy = $("btnCopy");
   const btnSave = $("btnSave");
@@ -1129,32 +1187,12 @@ async function minifyJSON() {
   }
 
   try {
-    const resp = await fetch("/api/v1/json/minify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: jsonText })
-    });
-
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + resp.status);
-      setStatus(msg, "err");
-      outEl.value = "";
-      return;
-    }
-
-    if (!data || !data.ok || !data.data || typeof data.data.minified !== "string") {
-      setStatus("响应格式不正确", "err");
-      outEl.value = "";
-      return;
-    }
-
-    outEl.value = data.data.minified;
+    outEl.value = minifyJSONText(jsonText);
     setStatus("压缩完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
   } catch (e) {
-    setStatus("请求失败：" + e.message, "err");
+    setStatus(e.message, "err");
     outEl.value = "";
   } finally {
     persistPageState();
