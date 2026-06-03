@@ -326,6 +326,34 @@ a:hover { text-decoration: underline; }
   background: rgba(255,255,255,0.04);
 }
 
+.context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 180px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(15,23,42,0.98);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  padding: 6px;
+}
+
+.context-menu button {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.context-menu button:hover {
+  background: rgba(96,165,250,0.14);
+}
+
 .tool-board {
   min-width: 0;
   display: flex;

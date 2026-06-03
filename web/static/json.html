@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>JSON 格式化 - Wrench</title>
-    <link rel="stylesheet" href="/static/style.css?v=app-shell-2"/>
+    <link rel="stylesheet" href="/static/style.css?v=app-shell-3"/>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 </head>
 <body data-page="json">
@@ -36,7 +36,11 @@
 {
   "name": "test",
   "age": 18
-}'></textarea>
+}
+
+也支持日志行里夹带 JSON：
+
+2026-06-03T10:24:59.020615572+08:00 stderr F {"ok":true}'></textarea>
             <div id="status" class="status"></div>
         </div>
 
@@ -53,10 +57,12 @@
         <div class="card">
             <h2>说明</h2>
             <p>
-                本工具支持格式化和压缩 JSON 数据。
+                本工具支持格式化和压缩 JSON 数据，也支持从日志行或混杂文本中剔除非 JSON 内容后解析。
             </p>
             <p>
-                <strong>格式化：</strong>将压缩的 JSON 转换为带缩进的可读格式，可以自定义缩进空格数。
+                <strong>格式化：</strong>将压缩的 JSON 转换为带缩进的可读格式；如果输入类似
+                <span class="kbd">2026-06-03 stderr F {}</span>，
+                会提取其中的 JSON 部分再格式化。
             </p>
             <p>
                 <strong>压缩：</strong>移除 JSON 中的所有空白字符，生成最小化的 JSON 字符串。
@@ -65,6 +71,6 @@
     </div>
 </div>
 
-<script src="/static/app.js?v=app-shell-2"></script>
+<script src="/static/app.js?v=app-shell-3"></script>
 </body>
 </html>

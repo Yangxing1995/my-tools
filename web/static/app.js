@@ -250,6 +250,127 @@ function setStatus(msg, type) {
   el.textContent = msg || "";
 }
 
+const handoffPrefix = "mytools:handoff:";
+const handoffTTL = 60 * 1000;
+
+function getSelectedTextareaText(textarea) {
+  if (!textarea || typeof textarea.selectionStart !== "number") return "";
+  return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd).trim();
+}
+
+function detectPemActions(text) {
+  const actions = [];
+  if (/-----BEGIN(?: NEW)? CERTIFICATE REQUEST-----/.test(text)) {
+    actions.push({ type: "csr", label: "在 CSR 工具中打开", href: "/csr" });
+  }
+  if (/-----BEGIN CERTIFICATE-----/.test(text)) {
+    actions.push({ type: "cert", label: "在证书工具中打开", href: "/cert" });
+  }
+  return actions;
+}
+
+function cleanupExpiredHandoffs() {
+  const now = Date.now();
+  Object.keys(localStorage).forEach(key => {
+    if (!key.startsWith(handoffPrefix)) return;
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || "{}");
+      if (!value.expiresAt || value.expiresAt < now) {
+        localStorage.removeItem(key);
+      }
+    } catch (e) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+function createHandoff(type, value) {
+  cleanupExpiredHandoffs();
+  const id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+  localStorage.setItem(handoffPrefix + id, JSON.stringify({
+    type,
+    value,
+    expiresAt: Date.now() + handoffTTL
+  }));
+  return id;
+}
+
+function consumeHandoff(page) {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("handoff");
+  if (!id) return;
+
+  const key = handoffPrefix + id;
+  try {
+    const data = JSON.parse(localStorage.getItem(key) || "{}");
+    localStorage.removeItem(key);
+
+    if (!data || data.expiresAt < Date.now() || data.type !== page || typeof data.value !== "string") {
+      return;
+    }
+
+    const input = $("input");
+    if (!input) return;
+
+    input.value = data.value;
+    persistField(input);
+    const cleanURL = window.location.pathname;
+    window.history.replaceState(null, "", cleanURL);
+  } catch (e) {
+    localStorage.removeItem(key);
+  }
+}
+
+function hideContextMenu() {
+  const existing = document.querySelector(".context-menu");
+  if (existing) existing.remove();
+}
+
+function showContextMenu(x, y, actions, text) {
+  hideContextMenu();
+
+  const menu = document.createElement("div");
+  menu.className = "context-menu";
+
+  actions.forEach(action => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = action.label;
+    button.addEventListener("click", () => {
+      const handoff = createHandoff(action.type, text);
+      hideContextMenu();
+      window.open(`${action.href}?handoff=${encodeURIComponent(handoff)}`, "_blank", "noopener");
+    });
+    menu.appendChild(button);
+  });
+
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  const left = Math.min(x, window.innerWidth - rect.width - 8);
+  const top = Math.min(y, window.innerHeight - rect.height - 8);
+  menu.style.left = `${Math.max(8, left)}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
+}
+
+function wireJSONContextActions() {
+  const outEl = $("output");
+  if (!outEl) return;
+
+  outEl.addEventListener("contextmenu", e => {
+    const selected = getSelectedTextareaText(outEl);
+    const actions = detectPemActions(selected);
+    if (actions.length === 0) return;
+
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, actions, selected);
+  });
+
+  document.addEventListener("click", hideContextMenu);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") hideContextMenu();
+  });
+}
+
 function currentPage() {
   return document.body ? document.body.dataset.page : "";
 }
@@ -1089,6 +1210,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (page) {
     restorePageState(page);
+    consumeHandoff(page);
   }
 
   if (page === "home") {
@@ -1102,6 +1224,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (page === "json") {
     wireJSONPage();
+    wireJSONContextActions();
   }
   if (page === "base64") {
     wireBase64Page();
