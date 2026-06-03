@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>CSR 格式化 - Wrench</title>
-    <link rel="stylesheet" href="/static/style.css?v=app-shell-4"/>
+    <link rel="stylesheet" href="/static/style.css"/>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 </head>
 <body data-page="csr">
@@ -36,7 +36,8 @@
             <div class="toolbar">
                 <button class="btn" id="btnCopy" disabled>复制输出</button>
                 <button class="btn" id="btnToJSON" disabled>转换为JSON</button>
-                <button class="btn" onclick="window.open('https://myssl.com/csr_decode.html', '_blank')">在线解析</button>
+                <button class="btn" onclick="window.open('https://myssl.com/csr_decode.html', '_blank')">MySSL解析</button>
+                <button class="btn" id="btnASN1">ASN.1解析</button>
             </div>
             <textarea class="textarea" id="output" readonly placeholder="规范化后的 PEM 将显示在这里"></textarea>
         </div>
@@ -58,6 +59,6 @@
     </div>
 </div>
 
-<script src="/static/app.js?v=app-shell-4"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>

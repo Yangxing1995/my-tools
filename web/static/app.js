@@ -464,6 +464,38 @@ function escapeHTML(value) {
     .replace(/'/g, "&#039;");
 }
 
+function openASN1Parser(text) {
+  const value = toASN1HashValue(text);
+  if (!value) {
+    setStatus("没有可解析的内容", "err");
+    return;
+  }
+  window.open("https://lapo.it/asn1js/#" + value, "_blank", "noreferrer");
+}
+
+function toASN1HashValue(text) {
+  const value = (text || "").trim();
+  if (!value) return "";
+
+  const pemMatch = value.match(/-----BEGIN [^-]+-----([\s\S]*?)-----END [^-]+-----/);
+  const body = pemMatch ? pemMatch[1] : value;
+
+  return body
+    .replace(/\s+/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function openMySSLCertParser(sha1) {
+  const value = (sha1 || "").trim();
+  if (!value) {
+    setStatus("缺少证书 SHA1", "err");
+    return;
+  }
+  window.open("https://myssl.com/cert_decode.html?id=" + encodeURIComponent(value), "_blank", "noreferrer");
+}
+
 function openFullscreenOverlay(textarea, title) {
   let overlay = document.getElementById("fullscreenOverlay");
   
@@ -699,12 +731,19 @@ function wireCSRPage() {
   const btnParse = $("btnParse");
   const btnCopy = $("btnCopy");
   const btnToJSON = $("btnToJSON");
+  const btnASN1 = $("btnASN1");
   const btnClear = $("btnClear");
   const inEl = $("input");
   const outEl = $("output");
 
   if (btn) btn.addEventListener("click", formatCSR);
   if (btnParse) btnParse.addEventListener("click", () => parseCSR());
+
+  if (btnASN1) {
+    btnASN1.addEventListener("click", () => {
+      openASN1Parser((outEl && outEl.value) || (inEl && inEl.value) || "");
+    });
+  }
 
   if (btnCopy && outEl) {
     btnCopy.addEventListener("click", async () => {
@@ -818,12 +857,18 @@ function renderCertList(certs) {
 
     const decodeBtn = document.createElement("button");
     decodeBtn.className = "btn";
-    decodeBtn.textContent = "在线解析";
-    decodeBtn.addEventListener("click", () => window.open("https://myssl.com/cert_decode.html?id="+cert.sha1, "_blank"));
+    decodeBtn.textContent = "MySSL解析";
+    decodeBtn.addEventListener("click", () => openMySSLCertParser(cert.sha1));
+
+    const asn1Btn = document.createElement("button");
+    asn1Btn.className = "btn";
+    asn1Btn.textContent = "ASN.1解析";
+    asn1Btn.addEventListener("click", () => openASN1Parser(cert.pem));
 
     toolbar.appendChild(label);
     toolbar.appendChild(copyBtn);
     toolbar.appendChild(decodeBtn);
+    toolbar.appendChild(asn1Btn);
 
     const textarea = document.createElement("textarea");
     textarea.className = "textarea";
