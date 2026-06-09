@@ -447,7 +447,7 @@ a:hover { text-decoration: underline; }
   display: flex;
   flex-direction: column;
   gap: 28px;
-  margin-top: 0;
+  margin-top: 28px;
 }
 
 .tool-section {
