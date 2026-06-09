@@ -2,7 +2,10 @@ module my-tools
 
 go 1.20
 
-require github.com/gin-gonic/gin v1.9.1
+require (
+	github.com/gin-gonic/gin v1.9.1
+	github.com/kardianos/service v1.2.3
+)
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect

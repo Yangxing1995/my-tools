@@ -14,10 +14,13 @@ type Server struct {
 }
 
 func New() *Server {
+	return NewWithStaticDir(filepath.Join("web", "static"))
+}
+
+func NewWithStaticDir(staticDir string) *Server {
 	e := gin.New()
 	e.Use(gin.Logger(), gin.Recovery())
 
-	staticDir := filepath.Join("web", "static")
 	e.Static("/static", staticDir)
 
 	e.GET("/", func(c *gin.Context) {

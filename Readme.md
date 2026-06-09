@@ -17,6 +17,12 @@ go run ./cmd/mytools
 
 默认监听：`http://127.0.0.1:8111`
 
+也可以显式指定监听地址和静态资源目录：
+
+```shell
+go run ./cmd/mytools serve -addr 127.0.0.1:8111 -static-dir web/static
+```
+
 健康检查：
 
 - `GET /healthz`
@@ -88,6 +94,42 @@ CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o dist/mytools-li
 ```shell
 go build ./cmd/mytools
 ```
+
+## 系统服务
+
+程序内置系统服务命令，使用 `github.com/kardianos/service` 注册到当前系统的服务管理器。Linux 上通常会生成 systemd service。
+
+典型系统级安装流程：
+
+```shell
+useradd -r -m -s /usr/sbin/nologin wrench
+mkdir -p /opt/wrench
+cp mytools /opt/wrench/
+cp -r web /opt/wrench/
+chown -R wrench:wrench /opt/wrench
+chmod +x /opt/wrench/mytools
+
+/opt/wrench/mytools install \
+  -addr 127.0.0.1:8111 \
+  -static-dir /opt/wrench/web/static \
+  -user wrench
+
+systemctl start wrench
+systemctl status wrench
+```
+
+服务命令：
+
+```shell
+mytools install
+mytools uninstall
+mytools start
+mytools stop
+mytools restart
+mytools status
+```
+
+普通用户也可以执行 `install/start/stop`，此时会按当前系统支持情况注册用户级服务；系统级安装建议用 root 执行，并通过 `-user wrench` 指定专用运行用户。
 
 ## 后续方向
 
