@@ -889,7 +889,6 @@ function renderCertList(certs) {
 
     const textarea = document.createElement("textarea");
     textarea.className = "textarea";
-    textarea.readOnly = true;
     textarea.value = cert.pem || "";
     textarea.style.height = "200px";
     textarea.style.fontSize = "12px";
