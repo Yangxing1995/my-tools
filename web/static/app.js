@@ -1101,10 +1101,210 @@ function runJSONEditorAction(actionId) {
   if (action) action.run();
 }
 
+let jsonTableRows = [];
+
+function normalizeJSONTableRows(value) {
+  const rows = Array.isArray(value) ? value : [value];
+  if (rows.length === 0) throw new Error("JSON 数组为空");
+  if (!rows.every(row => row && typeof row === "object" && !Array.isArray(row))) {
+    throw new Error("表格视图只支持 JSON 对象或对象数组");
+  }
+  return rows;
+}
+
+function collectJSONTableFields(rows) {
+  const fields = [];
+  const seen = new Set();
+  rows.forEach(row => {
+    Object.keys(row).forEach(key => {
+      if (seen.has(key)) return;
+      seen.add(key);
+      fields.push(key);
+    });
+  });
+  return fields;
+}
+
+function formatJSONTableCell(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function formatJSONCellForFullscreen(value) {
+  const text = String(value || "").trim();
+  if (!text) return { text: "", formatted: false };
+
+  try {
+    return {
+      text: JSON.stringify(JSON.parse(text), null, 2),
+      formatted: true
+    };
+  } catch (e) {
+    return { text: value || "", formatted: false };
+  }
+}
+
+function showJSONCellFullscreen(title, value) {
+  let overlay = document.getElementById("jsonCellOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "jsonCellOverlay";
+    overlay.className = "fullscreen-overlay";
+
+    const header = document.createElement("div");
+    header.className = "fullscreen-header";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "fullscreen-title";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "fullscreen-close";
+    closeBtn.textContent = "关闭 (ESC)";
+
+    const content = document.createElement("pre");
+    content.className = "json-cell-fullscreen-content";
+
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+    overlay.appendChild(header);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.classList.remove("active");
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("click", e => {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    });
+  }
+
+  const formattedValue = formatJSONCellForFullscreen(value);
+  overlay.querySelector(".fullscreen-title").textContent = formattedValue.formatted ? `${title} · JSON 已格式化` : title;
+  overlay.querySelector(".json-cell-fullscreen-content").textContent = formattedValue.text;
+  overlay.classList.add("active");
+}
+
+function getSelectedJSONTableFields() {
+  return Array.from(document.querySelectorAll("#jsonFieldList input[type='checkbox']:checked")).map(input => input.value);
+}
+
+function renderJSONTable(fields) {
+  const container = $("jsonTableContainer");
+  const summary = $("jsonTableSummary");
+  if (!container) return;
+
+  const selectedFields = fields && fields.length ? fields : getSelectedJSONTableFields();
+  if (summary) summary.textContent = `${jsonTableRows.length} 行 / ${selectedFields.length} 列`;
+
+  if (!selectedFields.length) {
+    container.innerHTML = "<div class=\"small\">请至少选择一个字段</div>";
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "json-data-table";
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  selectedFields.forEach(field => {
+    const th = document.createElement("th");
+    th.textContent = field;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  jsonTableRows.forEach(row => {
+    const tr = document.createElement("tr");
+    selectedFields.forEach(field => {
+      const td = document.createElement("td");
+      const value = formatJSONTableCell(row[field]);
+      const content = document.createElement("div");
+      content.className = "json-cell-content";
+      content.textContent = value;
+      content.title = "双击全屏查看";
+      content.addEventListener("dblclick", () => showJSONCellFullscreen(field, value));
+      td.appendChild(content);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  container.replaceChildren(table);
+}
+
+function renderJSONFieldList(fields) {
+  const fieldList = $("jsonFieldList");
+  if (!fieldList) return;
+
+  fieldList.replaceChildren();
+  fields.forEach(field => {
+    const label = document.createElement("label");
+    label.className = "json-field-item";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = field;
+    input.checked = true;
+    input.addEventListener("change", () => renderJSONTable());
+
+    const text = document.createElement("span");
+    text.textContent = field;
+
+    label.appendChild(input);
+    label.appendChild(text);
+    fieldList.appendChild(label);
+  });
+}
+
+function clearJSONTableView() {
+  jsonTableRows = [];
+  const card = $("jsonTableCard");
+  const fieldList = $("jsonFieldList");
+  const container = $("jsonTableContainer");
+  const summary = $("jsonTableSummary");
+  if (card) card.hidden = true;
+  if (fieldList) fieldList.replaceChildren();
+  if (container) container.replaceChildren();
+  if (summary) summary.textContent = "";
+}
+
+function showJSONTableView() {
+  const outEl = $("output");
+  const card = $("jsonTableCard");
+  if (!outEl || !card) return;
+
+  const text = (outEl.value || "").trim();
+  if (!text) {
+    setStatus("没有可转换的 JSON 输出", "err");
+    clearJSONTableView();
+    return;
+  }
+
+  try {
+    jsonTableRows = normalizeJSONTableRows(JSON.parse(text));
+    const fields = collectJSONTableFields(jsonTableRows);
+    if (fields.length === 0) throw new Error("没有可展示的字段");
+    renderJSONFieldList(fields);
+    renderJSONTable(fields);
+    card.hidden = false;
+    setStatus("表格视图已生成", "ok");
+  } catch (e) {
+    clearJSONTableView();
+    setStatus("表格视图生成失败：" + e.message, "err");
+  }
+}
+
 function formatJSON() {
   const btn = $("btnFormat");
   const btnCopy = $("btnCopy");
   const btnSave = $("btnSave");
+  const btnJSONTable = $("btnJSONTable");
   const inEl = $("input");
   const outEl = $("output");
   const indentSelect = $("indentSelect");
@@ -1115,6 +1315,7 @@ function formatJSON() {
   if (btn) btn.disabled = true;
   if (btnCopy) btnCopy.disabled = true;
   if (btnSave) btnSave.disabled = true;
+  if (btnJSONTable) btnJSONTable.disabled = true;
 
   const jsonText = (inEl.value || "").trim();
   if (!jsonText) {
@@ -1130,9 +1331,11 @@ function formatJSON() {
     setStatus("格式化完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
+    if (btnJSONTable) btnJSONTable.disabled = false;
   } catch (e) {
     setStatus(e.message, "err");
     setJSONOutputValue("");
+    clearJSONTableView();
   } finally {
     persistPageState();
     if (btn) btn.disabled = false;
@@ -1143,6 +1346,7 @@ function minifyJSON() {
   const btn = $("btnMinify");
   const btnCopy = $("btnCopy");
   const btnSave = $("btnSave");
+  const btnJSONTable = $("btnJSONTable");
   const inEl = $("input");
   const outEl = $("output");
 
@@ -1152,6 +1356,7 @@ function minifyJSON() {
   if (btn) btn.disabled = true;
   if (btnCopy) btnCopy.disabled = true;
   if (btnSave) btnSave.disabled = true;
+  if (btnJSONTable) btnJSONTable.disabled = true;
 
   const jsonText = (inEl.value || "").trim();
   if (!jsonText) {
@@ -1165,9 +1370,11 @@ function minifyJSON() {
     setStatus("压缩完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
+    if (btnJSONTable) btnJSONTable.disabled = false;
   } catch (e) {
     setStatus(e.message, "err");
     setJSONOutputValue("");
+    clearJSONTableView();
   } finally {
     persistPageState();
     if (btn) btn.disabled = false;
@@ -1210,6 +1417,7 @@ function wireJSONPage() {
   const btnFullscreenOutput = $("btnFullscreenOutput");
   const btnExpandJSON = $("btnExpandJSON");
   const btnCollapseJSON = $("btnCollapseJSON");
+  const btnJSONTable = $("btnJSONTable");
   const inEl = $("input");
   const outEl = $("output");
 
@@ -1234,13 +1442,19 @@ function wireJSONPage() {
     btnSave.addEventListener("click", saveJSONToFile);
   }
 
+  if (btnJSONTable) {
+    btnJSONTable.addEventListener("click", showJSONTableView);
+  }
+
   if (btnClear) {
     btnClear.addEventListener("click", () => {
       if (inEl) inEl.value = "";
       setJSONOutputValue("");
+      clearJSONTableView();
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
       if (btnSave) btnSave.disabled = true;
+      if (btnJSONTable) btnJSONTable.disabled = true;
       persistPageState();
     });
   }
@@ -1266,10 +1480,13 @@ function wireJSONPage() {
   }
 
   if (outEl) {
+    if (btnJSONTable && outEl.value) btnJSONTable.disabled = false;
     outEl.addEventListener("input", () => {
       if (jsonOutputEditor && jsonOutputEditor.getValue() !== outEl.value) {
         jsonOutputEditor.setValue(outEl.value || "");
       }
+      if (btnJSONTable) btnJSONTable.disabled = !outEl.value.trim();
+      clearJSONTableView();
     });
   }
 

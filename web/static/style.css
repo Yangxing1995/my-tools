@@ -418,6 +418,108 @@ a:hover { text-decoration: underline; }
   display: none;
 }
 
+.json-table-card[hidden] {
+  display: none;
+}
+
+.json-field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.json-field-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.json-field-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.json-table-wrap {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.json-data-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 12px;
+}
+
+.json-data-table th,
+.json-data-table td {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 120px;
+  max-width: 420px;
+}
+
+.json-data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15,23,42,0.98);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.json-data-table td {
+  color: var(--muted);
+}
+
+.json-data-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.json-cell-content {
+  max-height: 96px;
+  max-width: 400px;
+  min-width: 100px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  cursor: zoom-in;
+}
+
+.json-cell-fullscreen-content {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(7, 11, 20, 0.86);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .footer {
   margin-top: 18px;
   color: var(--muted);

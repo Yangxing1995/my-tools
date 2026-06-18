@@ -52,11 +52,21 @@
                 <button class="btn" id="btnSave" disabled>保存文件</button>
                 <button class="btn" id="btnExpandJSON" type="button">展开全部</button>
                 <button class="btn" id="btnCollapseJSON" type="button">收起全部</button>
+                <button class="btn" id="btnJSONTable" type="button" disabled>表格视图</button>
             </div>
             <div class="json-output-box">
                 <textarea class="textarea" id="output" placeholder="格式化或压缩后的结果将显示在这里"></textarea>
                 <div class="json-editor" id="jsonOutputEditor" hidden></div>
             </div>
+        </div>
+
+        <div class="card json-table-card" id="jsonTableCard" hidden>
+            <div class="section-title">
+                <h2>表格视图</h2>
+                <span id="jsonTableSummary"></span>
+            </div>
+            <div class="json-field-list" id="jsonFieldList"></div>
+            <div class="json-table-wrap" id="jsonTableContainer"></div>
         </div>
 
         <div class="card">
