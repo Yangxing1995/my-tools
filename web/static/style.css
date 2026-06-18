@@ -399,6 +399,25 @@ a:hover { text-decoration: underline; }
 .status.ok { color: var(--ok); }
 .status.err { color: var(--danger); }
 
+.json-output-box {
+  min-width: 0;
+}
+
+.json-editor {
+  width: 100%;
+  min-height: 320px;
+  height: 520px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(7, 11, 20, 0.6);
+}
+
+.json-editor[hidden],
+.json-output-source-hidden {
+  display: none;
+}
+
 .footer {
   margin-top: 18px;
   color: var(--muted);

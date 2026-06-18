@@ -578,8 +578,10 @@ function openFullscreenOverlay(textarea, title) {
     document.body.appendChild(overlay);
     
     const closeFullscreen = () => {
-      textarea.value = clonedTextarea.value;
-      persistField(textarea);
+      const sourceTextarea = overlay._sourceTextarea || textarea;
+      sourceTextarea.value = clonedTextarea.value;
+      persistField(sourceTextarea);
+      sourceTextarea.dispatchEvent(new Event("input", { bubbles: true }));
       overlay.classList.remove("active");
     };
     
@@ -601,6 +603,7 @@ function openFullscreenOverlay(textarea, title) {
   const titleEl = overlay.querySelector(".fullscreen-title");
   const clonedTextarea = overlay.querySelector("#fullscreenTextarea");
   
+  overlay._sourceTextarea = textarea;
   titleEl.textContent = title;
   clonedTextarea.value = textarea.value;
   clonedTextarea.readOnly = textarea.readOnly;
@@ -1015,6 +1018,89 @@ function wireCertPage() {
   }
 }
 
+let jsonOutputEditor = null;
+let jsonOutputEditorLoading = false;
+
+function syncJSONOutputSource(value) {
+  const outEl = $("output");
+  if (!outEl) return;
+  outEl.value = value || "";
+  persistField(outEl);
+}
+
+function setJSONOutputValue(value) {
+  syncJSONOutputSource(value);
+  if (jsonOutputEditor && jsonOutputEditor.getValue() !== value) {
+    jsonOutputEditor.setValue(value || "");
+  }
+}
+
+function getJSONOutputSelection() {
+  if (!jsonOutputEditor) return "";
+  const selection = jsonOutputEditor.getSelection();
+  return selection ? jsonOutputEditor.getModel().getValueInRange(selection).trim() : "";
+}
+
+function bindJSONEditorContextMenu(editor) {
+  const domNode = editor && editor.getDomNode ? editor.getDomNode() : null;
+  if (!domNode || domNode.dataset.jsonContextMenuBound === "1") return;
+  domNode.dataset.jsonContextMenuBound = "1";
+
+  domNode.addEventListener("contextmenu", e => {
+    const selected = getJSONOutputSelection();
+    const actions = detectPemActions(selected);
+    if (actions.length === 0) return;
+
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, actions, selected);
+  });
+}
+
+function initJSONOutputEditor() {
+  const outEl = $("output");
+  const editorContainer = $("jsonOutputEditor");
+  if (!outEl || !editorContainer || jsonOutputEditor || jsonOutputEditorLoading) return;
+
+  if (typeof require !== "function") {
+    setStatus("Monaco 编辑器未加载，已使用普通文本框", "err");
+    return;
+  }
+
+  jsonOutputEditorLoading = true;
+  require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs" } });
+  require(["vs/editor/editor.main"], () => {
+    jsonOutputEditor = monaco.editor.create(editorContainer, {
+      value: outEl.value || "",
+      language: "json",
+      theme: "vs-dark",
+      automaticLayout: true,
+      folding: true,
+      showFoldingControls: "always",
+      fontSize: 13,
+      tabSize: 2,
+      insertSpaces: true,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: "off"
+    });
+
+    editorContainer.hidden = false;
+    outEl.classList.add("json-output-source-hidden");
+    jsonOutputEditor.onDidChangeModelContent(() => syncJSONOutputSource(jsonOutputEditor.getValue()));
+    bindJSONEditorContextMenu(jsonOutputEditor);
+    jsonOutputEditorLoading = false;
+  }, () => {
+    jsonOutputEditorLoading = false;
+    setStatus("Monaco 编辑器加载失败，已使用普通文本框", "err");
+  });
+}
+
+function runJSONEditorAction(actionId) {
+  if (!jsonOutputEditor) return;
+  const action = jsonOutputEditor.getAction(actionId);
+  if (action) action.run();
+}
+
 function formatJSON() {
   const btn = $("btnFormat");
   const btnCopy = $("btnCopy");
@@ -1040,13 +1126,13 @@ function formatJSON() {
   const indent = indentSelect ? parseInt(indentSelect.value, 10) : 2;
 
   try {
-    outEl.value = formatJSONText(jsonText, indent);
+    setJSONOutputValue(formatJSONText(jsonText, indent));
     setStatus("格式化完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
   } catch (e) {
     setStatus(e.message, "err");
-    outEl.value = "";
+    setJSONOutputValue("");
   } finally {
     persistPageState();
     if (btn) btn.disabled = false;
@@ -1075,13 +1161,13 @@ function minifyJSON() {
   }
 
   try {
-    outEl.value = minifyJSONText(jsonText);
+    setJSONOutputValue(minifyJSONText(jsonText));
     setStatus("压缩完成", "ok");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
   } catch (e) {
     setStatus(e.message, "err");
-    outEl.value = "";
+    setJSONOutputValue("");
   } finally {
     persistPageState();
     if (btn) btn.disabled = false;
@@ -1122,8 +1208,12 @@ function wireJSONPage() {
   const btnClear = $("btnClear");
   const btnFullscreenInput = $("btnFullscreenInput");
   const btnFullscreenOutput = $("btnFullscreenOutput");
+  const btnExpandJSON = $("btnExpandJSON");
+  const btnCollapseJSON = $("btnCollapseJSON");
   const inEl = $("input");
   const outEl = $("output");
+
+  initJSONOutputEditor();
 
   if (btnFormat) {
     btnFormat.addEventListener("click", formatJSON);
@@ -1147,7 +1237,7 @@ function wireJSONPage() {
   if (btnClear) {
     btnClear.addEventListener("click", () => {
       if (inEl) inEl.value = "";
-      if (outEl) outEl.value = "";
+      setJSONOutputValue("");
       setStatus("", "");
       if (btnCopy) btnCopy.disabled = true;
       if (btnSave) btnSave.disabled = true;
@@ -1164,6 +1254,22 @@ function wireJSONPage() {
   if (btnFullscreenOutput && outEl) {
     btnFullscreenOutput.addEventListener("click", () => {
       openFullscreenOverlay(outEl, "输出区域");
+    });
+  }
+
+  if (btnExpandJSON) {
+    btnExpandJSON.addEventListener("click", () => runJSONEditorAction("editor.unfoldAll"));
+  }
+
+  if (btnCollapseJSON) {
+    btnCollapseJSON.addEventListener("click", () => runJSONEditorAction("editor.foldAll"));
+  }
+
+  if (outEl) {
+    outEl.addEventListener("input", () => {
+      if (jsonOutputEditor && jsonOutputEditor.getValue() !== outEl.value) {
+        jsonOutputEditor.setValue(outEl.value || "");
+      }
     });
   }
 
