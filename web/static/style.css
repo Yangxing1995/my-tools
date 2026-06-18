@@ -854,6 +854,12 @@ a:hover { text-decoration: underline; }
   font-weight: bold;
 }
 
+.fullscreen-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .fullscreen-close {
   appearance: none;
   border: 1px solid var(--border);
@@ -873,4 +879,13 @@ a:hover { text-decoration: underline; }
   flex: 1;
   min-height: 0;
   resize: none;
+}
+
+.json-fullscreen-editor {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(7, 11, 20, 0.6);
 }

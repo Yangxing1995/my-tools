@@ -1020,6 +1020,7 @@ function wireCertPage() {
 
 let jsonOutputEditor = null;
 let jsonOutputEditorLoading = false;
+let jsonFullscreenEditor = null;
 
 function syncJSONOutputSource(value) {
   const outEl = $("output");
@@ -1099,6 +1100,122 @@ function runJSONEditorAction(actionId) {
   if (!jsonOutputEditor) return;
   const action = jsonOutputEditor.getAction(actionId);
   if (action) action.run();
+}
+
+function createMonacoJSONEditor(container, value) {
+  return monaco.editor.create(container, {
+    value: value || "",
+    language: "json",
+    theme: "vs-dark",
+    automaticLayout: true,
+    folding: true,
+    showFoldingControls: "always",
+    fontSize: 13,
+    tabSize: 2,
+    insertSpaces: true,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    wordWrap: "off"
+  });
+}
+
+function openJSONMonacoFullscreen() {
+  const outEl = $("output");
+  if (!outEl) return;
+  if (typeof require !== "function") {
+    openFullscreenOverlay(outEl, "输出区域");
+    return;
+  }
+
+  let overlay = document.getElementById("jsonMonacoFullscreenOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "jsonMonacoFullscreenOverlay";
+    overlay.className = "fullscreen-overlay";
+
+    const header = document.createElement("div");
+    header.className = "fullscreen-header";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "fullscreen-title";
+    titleEl.textContent = "输出区域";
+
+    const actions = document.createElement("div");
+    actions.className = "fullscreen-actions";
+
+    const expandBtn = document.createElement("button");
+    expandBtn.className = "fullscreen-close";
+    expandBtn.type = "button";
+    expandBtn.textContent = "展开全部";
+
+    const collapseBtn = document.createElement("button");
+    collapseBtn.className = "fullscreen-close";
+    collapseBtn.type = "button";
+    collapseBtn.textContent = "收起全部";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "fullscreen-close";
+    closeBtn.type = "button";
+    closeBtn.textContent = "退出全屏 (ESC)";
+
+    actions.appendChild(expandBtn);
+    actions.appendChild(collapseBtn);
+    actions.appendChild(closeBtn);
+    header.appendChild(titleEl);
+    header.appendChild(actions);
+
+    const editorContainer = document.createElement("div");
+    editorContainer.id = "jsonFullscreenEditor";
+    editorContainer.className = "json-fullscreen-editor";
+
+    overlay.appendChild(header);
+    overlay.appendChild(editorContainer);
+    document.body.appendChild(overlay);
+
+    const close = () => {
+      if (jsonFullscreenEditor) {
+        setJSONOutputValue(jsonFullscreenEditor.getValue());
+      }
+      overlay.classList.remove("active");
+    };
+
+    expandBtn.addEventListener("click", () => {
+      if (jsonFullscreenEditor) {
+        const action = jsonFullscreenEditor.getAction("editor.unfoldAll");
+        if (action) action.run();
+      }
+    });
+    collapseBtn.addEventListener("click", () => {
+      if (jsonFullscreenEditor) {
+        const action = jsonFullscreenEditor.getAction("editor.foldAll");
+        if (action) action.run();
+      }
+    });
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("click", e => {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    });
+  }
+
+  overlay.classList.add("active");
+  require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs" } });
+  require(["vs/editor/editor.main"], () => {
+    const editorContainer = $("jsonFullscreenEditor");
+    if (!editorContainer) return;
+    if (!jsonFullscreenEditor) {
+      jsonFullscreenEditor = createMonacoJSONEditor(editorContainer, outEl.value || "");
+    } else if (jsonFullscreenEditor.getValue() !== outEl.value) {
+      jsonFullscreenEditor.setValue(outEl.value || "");
+    }
+    jsonFullscreenEditor.focus();
+    jsonFullscreenEditor.layout();
+  }, () => {
+    overlay.classList.remove("active");
+    openFullscreenOverlay(outEl, "输出区域");
+  });
 }
 
 let jsonTableRows = [];
@@ -1467,7 +1584,7 @@ function wireJSONPage() {
 
   if (btnFullscreenOutput && outEl) {
     btnFullscreenOutput.addEventListener("click", () => {
-      openFullscreenOverlay(outEl, "输出区域");
+      openJSONMonacoFullscreen();
     });
   }
 
