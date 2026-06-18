@@ -29,7 +29,7 @@ go run ./cmd/mytools serve -addr 127.0.0.1:8111 -static-dir web/static
 
 ## 当前工具
 
-- JSON 格式化/压缩：支持从日志行或混杂文本中提取 JSON 后处理。
+- JSON 解析器：支持从日志行或混杂文本中提取 JSON，并提供格式化、压缩、折叠编辑和表格查看。
 - Base64 编解码：按 UTF-8 文本处理。
 - URL 编解码：处理 URL percent-encoding。
 - PG Array 转换：把换行、逗号或空格分隔的一串 ID 转成 PostgreSQL 查询片段。

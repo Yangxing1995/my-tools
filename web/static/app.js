@@ -18,11 +18,11 @@ const {
 
 const toolCatalog = [
   {
-    name: "JSON 格式化",
+    name: "JSON 解析器",
     href: "/json",
     category: "数据处理",
-    desc: "格式化、压缩和校验 JSON 数据",
-    tags: ["json", "format", "minify", "格式化", "压缩", "校验"]
+    desc: "提取、格式化、压缩和表格查看 JSON 数据",
+    tags: ["json", "format", "minify", "格式化", "压缩", "校验", "解析", "表格"]
   },
   {
     name: "CSR 格式化",
