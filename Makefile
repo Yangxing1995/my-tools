@@ -1,13 +1,13 @@
 .PHONY: help run test test-all fmt vet build build-linux build-darwin build-windows package-linux clean
 
-APP_NAME := mytools
-CMD_DIR := ./cmd/mytools
+APP_NAME := wrench
+CMD_DIR := ./cmd/wrench
 DIST_DIR := ./dist
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 help:
 	@echo "Targets:"
-	@echo "  run           - run server (go run ./cmd/mytools)"
+	@echo "  run           - run server (go run ./cmd/wrench)"
 	@echo "  test          - run tests for new skeleton (go test ./internal/...)"
 	@echo "  test-all      - run all tests (go test ./...)"
 	@echo "  fmt           - format Go code (gofmt)"

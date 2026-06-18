@@ -14,7 +14,7 @@ const {
   encodeURLText,
   decodeURLText,
   toPGArray
-} = window.MyToolsUtils || {};
+} = window.WrenchUtils || {};
 
 const toolCatalog = [
   {
@@ -303,7 +303,7 @@ function setStatus(msg, type) {
   el.textContent = msg || "";
 }
 
-const handoffPrefix = "mytools:handoff:";
+const handoffPrefix = "wrench:handoff:";
 const handoffTTL = 60 * 1000;
 
 function getSelectedTextareaText(textarea) {
@@ -433,7 +433,7 @@ function currentPage() {
 }
 
 function storageKey(page, id) {
-  return `mytools:${page}:${id}`;
+  return `wrench:${page}:${id}`;
 }
 
 function persistField(el) {

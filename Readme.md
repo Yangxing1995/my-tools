@@ -1,4 +1,4 @@
-# my-tools
+# Wrench
 
 本项目是一个本地运行的 Web 工具箱，当前形态是 **Go + Gin 托管静态页面，纯文本工具在浏览器端实现**。
 
@@ -12,7 +12,7 @@
 ## 快速开始
 
 ```shell
-go run ./cmd/mytools
+go run ./cmd/wrench
 ```
 
 默认监听：`http://127.0.0.1:8111`
@@ -20,7 +20,7 @@ go run ./cmd/mytools
 也可以显式指定监听地址和静态资源目录：
 
 ```shell
-go run ./cmd/mytools serve -addr 127.0.0.1:8111 -static-dir web/static
+go run ./cmd/wrench serve -addr 127.0.0.1:8111 -static-dir web/static
 ```
 
 健康检查：
@@ -60,7 +60,7 @@ go run ./cmd/mytools serve -addr 127.0.0.1:8111 -static-dir web/static
 ## 项目结构
 
 ```text
-cmd/mytools/                 # 程序入口
+cmd/wrench/                  # 程序入口
 internal/server/             # Gin engine、静态页面路由、健康检查
 internal/api/http/           # 预留的统一响应结构
 internal/api/v1/             # 预留的 v1 API 路由聚合
@@ -86,13 +86,13 @@ go test ./...
 Linux amd64 示例：
 
 ```shell
-CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o dist/mytools-linux-amd64 ./cmd/mytools
+CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 go build -o dist/wrench-linux-amd64 ./cmd/wrench
 ```
 
 本地构建：
 
 ```shell
-go build ./cmd/mytools
+go build -o dist/wrench ./cmd/wrench
 ```
 
 ## 系统服务
@@ -104,12 +104,12 @@ go build ./cmd/mytools
 ```shell
 useradd -r -m -s /usr/sbin/nologin wrench
 mkdir -p /opt/wrench
-cp mytools /opt/wrench/
+cp wrench /opt/wrench/
 cp -r web /opt/wrench/
 chown -R wrench:wrench /opt/wrench
-chmod +x /opt/wrench/mytools
+chmod +x /opt/wrench/wrench
 
-/opt/wrench/mytools install \
+/opt/wrench/wrench install \
   -addr 127.0.0.1:8111 \
   -static-dir /opt/wrench/web/static \
   -user wrench
@@ -121,12 +121,12 @@ systemctl status wrench
 服务命令：
 
 ```shell
-mytools install
-mytools uninstall
-mytools start
-mytools stop
-mytools restart
-mytools status
+wrench install
+wrench uninstall
+wrench start
+wrench stop
+wrench restart
+wrench status
 ```
 
 普通用户也可以执行 `install/start/stop`，此时会按当前系统支持情况注册用户级服务；系统级安装建议用 root 执行，并通过 `-user wrench` 指定专用运行用户。

@@ -11,7 +11,7 @@ import (
 
 	"github.com/kardianos/service"
 
-	"my-tools/internal/server"
+	"wrench/internal/server"
 )
 
 const serviceName = "wrench"
@@ -186,11 +186,11 @@ func formatStatus(status service.Status) string {
 
 func printUsage() {
 	fmt.Println(`Usage:
-  mytools [serve] [-addr 127.0.0.1:8111] [-static-dir web/static]
-  mytools install [-addr 127.0.0.1:8111] [-static-dir /opt/wrench/web/static] [-user wrench]
-  mytools uninstall
-  mytools start
-  mytools stop
-  mytools restart
-  mytools status`)
+  wrench [serve] [-addr 127.0.0.1:8111] [-static-dir web/static]
+  wrench install [-addr 127.0.0.1:8111] [-static-dir /opt/wrench/web/static] [-user wrench]
+  wrench uninstall
+  wrench start
+  wrench stop
+  wrench restart
+  wrench status`)
 }

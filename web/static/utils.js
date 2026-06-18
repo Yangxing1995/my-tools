@@ -643,7 +643,7 @@
     toPGArray
   };
 
-  root.MyToolsUtils = api;
+  root.WrenchUtils = api;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

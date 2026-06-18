@@ -3,43 +3,43 @@ const assert = require("node:assert/strict");
 const utils = require("./utils.js");
 
 const sampleCert = `-----BEGIN CERTIFICATE-----
-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
+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
 -----END CERTIFICATE-----`;
 
 const sampleCSR = `-----BEGIN CERTIFICATE REQUEST-----
-MIICyTCCAbECAQAwQDEZMBcGA1UEAwwQY3NyLmV4YW1wbGUudGVzdDEQMA4GA1UE
-CgwHTXlUb29sczERMA8GA1UECwwIRnJvbnRlbmQwggEiMA0GCSqGSIb3DQEBAQUA
-A4IBDwAwggEKAoIBAQCUsA5qCpwRd0OmJw8aP6kyj/KSZyV8eM9ifsl771ynQqG6
-DnIA6OpBpV1F0kYK8bM511ceZe4cBJNwCaVM/FiumgUe6pTMYX0K7FH9neoIhwYx
-1QbbZuqdo2xJJt2Z9UBpw52lGEk1qfz4DIbX111d4Nexh3BfOxYjbjO5kCON2S3i
-CZ4rv62BeBSxgQFgVHppINj+IB7W510H15yf206m4IpaSo60X1aISYgF31XyGzYs
-ILneVnLY1uRn1OPfrYFyqdMw0AQsIKI1b0P+ngg5eWYW35+qabhANZ85EVMBUtLj
-/5K/6lcUZwPl5rp3oNrd/O/LpxuGjotcjLH6f4NBAgMBAAGgRDBCBgkqhkiG9w0B
-CQ4xNTAzMDEGA1UdEQQqMCiCEGNzci5leGFtcGxlLnRlc3SCFHd3dy5jc3IuZXhh
-bXBsZS50ZXN0MA0GCSqGSIb3DQEBCwUAA4IBAQCLBnQ3p5++xqLQeRSMoH4NPkSQ
-evKl99xrMtEVl5bi80be4WGl3l1aQJF3jv/CQYoYkXOJ0ex7zsKqTZytc7lSh75L
-MO2Ux/+u2B7OE3YcbSNU9c/+PIxRvhXF9GdzsYpSssEjbxRwMiyWHEqVVU+SKRmo
-N2kXvLUScmrAe3FgfjQ0pOCNNnGnu2Ks7/XUNOdW2AijHNgCgIvitNaV/Gn4YiJ2
-kt8HsrsoTYl8jx15cNFEABVQj5X9R/lYVZ3jVMj3VxU1ar7eXIoYwkCCQBbBd6KQ
-bqLPpEeLj9Se9gICstDgZfol3DbKjMo0a9zwishuTIc6mIt64jKMLPNtfZZC
+MIICyDCCAbACAQAwPzEZMBcGA1UEAwwQY3NyLmV4YW1wbGUudGVzdDEPMA0GA1UE
+CgwGV3JlbmNoMREwDwYDVQQLDAhGcm9udGVuZDCCASIwDQYJKoZIhvcNAQEBBQAD
+ggEPADCCAQoCggEBALapQZeywTVU5rWzxoegbt44Ivii39wR7J0hXWrwkpaPCofw
+ujjxXNr0dKP0jPSQNE+usdLQ2b2jNQhJgPSdEEXs+c0NhYcffR2uRfn2j5MrZZEC
+DmmDfz32174xi2Z04HQUuWqTZ/S8x5qPVM0v0I+BCrTqrtKDAYzcZk1biAbwAOnz
+Ginj4REsy//oGcS5iCmXbFFQ7Cp+/8EDWakyITiJxkZRLDi3AxWskW9ZyUiy9x1I
+j6HY5qdMn9A+AdjEnKf7lUw/awruinko4F1yGrhWXD8SPvdSG8AyaNxi97vUzJYE
+kHEXxhRPwESRLSbGNjd0SJRG2FuDzpS/Vj0/moUCAwEAAaBEMEIGCSqGSIb3DQEJ
+DjE1MDMwMQYDVR0RBCowKIIQY3NyLmV4YW1wbGUudGVzdIIUd3d3LmNzci5leGFt
+cGxlLnRlc3QwDQYJKoZIhvcNAQELBQADggEBABpcj9QschuZjnfDOwCHfqtTQ1Dk
+05qkuIC80f1q7KIVOSS5lAtF884QSYq2EoYa0G/hdNVFcLUmqo4g/CfGHKyVd9YH
+WEuZflS8D+adhs1JPFTzmtnT7YEnfjA8bkfnHg++cCsjCw+eY14vL7toh/n6t4BP
+xzYxRthpV/6PpGA89k5mIDD4BNtqYAp853sZEyVr52bcij0MfR77v4hBBVx/otOi
+MWkyewg1jtsbs9DAeaWpfCvdmbNEWvg1zRFr23hhcIzUFtXuckZADwezKrfNO77F
+GIvpPuWFDmim12W4jP8Hrw30/kbQyfAjn9NXxTDiuxl+jmxEXkz1IgH5daY=
 -----END CERTIFICATE REQUEST-----`;
 
 test("formatJSONText extracts JSON from log text", () => {
@@ -97,8 +97,8 @@ test("splitCertificatePEMs splits certificate chains", () => {
 
 test("parseCertificatePEM extracts common fields", async () => {
   const cert = await utils.parseCertificatePEM(sampleCert);
-  assert.equal(cert.subject, "CN=example.test, O=MyTools, OU=Frontend");
-  assert.equal(cert.issuer, "CN=example.test, O=MyTools, OU=Frontend");
+  assert.equal(cert.subject, "CN=example.test, O=Wrench, OU=Frontend");
+  assert.equal(cert.issuer, "CN=example.test, O=Wrench, OU=Frontend");
   assert.equal(cert.publicKeyAlgorithm, "RSA");
   assert.equal(cert.publicKeySize, 2048);
   assert.equal(cert.signatureAlgorithm, "SHA256-RSA");
@@ -109,7 +109,7 @@ test("parseCertificatePEM extracts common fields", async () => {
 
 test("parseCSRPEM extracts subject and SAN", () => {
   const csr = utils.parseCSRPEM(sampleCSR);
-  assert.equal(csr.subject, "CN=csr.example.test, O=MyTools, OU=Frontend");
+  assert.equal(csr.subject, "CN=csr.example.test, O=Wrench, OU=Frontend");
   assert.equal(csr.commonName, "csr.example.test");
   assert.deepEqual(csr.dnsNames, ["csr.example.test", "www.csr.example.test"]);
   assert.equal(csr.publicKeyAlgorithm, "RSA");

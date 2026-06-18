@@ -1,4 +1,4 @@
-module my-tools
+module wrench
 
 go 1.20
 

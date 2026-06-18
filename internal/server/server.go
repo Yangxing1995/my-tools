@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	v1 "my-tools/internal/api/v1"
+	v1 "wrench/internal/api/v1"
 )
 
 type Server struct {
