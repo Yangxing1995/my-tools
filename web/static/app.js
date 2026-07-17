@@ -13,7 +13,12 @@ const {
   base64ToUtf8,
   encodeURLText,
   decodeURLText,
-  toPGArray
+  toPGArray,
+  transformLines,
+  parseDateTime,
+  formatDateTime,
+  diffDateTimes,
+  addDaysToDateTime
 } = window.WrenchUtils || {};
 
 const toolCatalog = [
@@ -58,11 +63,91 @@ const toolCatalog = [
     category: "数据处理",
     desc: "把一串 ID 转成 PostgreSQL IN 查询数组",
     tags: ["postgres", "pg", "sql", "array", "in", "id", "数组"]
+  },
+  {
+    name: "文本去重排序",
+    href: "/text",
+    category: "数据处理",
+    desc: "多行文本去重、排序和清理空行",
+    tags: ["text", "文本", "去重", "排序", "行处理", "列表"]
+  },
+  {
+    name: "时间计算",
+    href: "/time",
+    category: "数据处理",
+    desc: "计算两个时间差值，或给时间加减天数",
+    tags: ["time", "date", "时间", "日期", "天数", "时间差"]
+  },
+  {
+    name: "CSR 与证书匹配",
+    href: "/cert-match",
+    category: "证书工具",
+    desc: "比较 CSR 和证书的公钥、CN 和 SAN",
+    tags: ["csr", "cert", "certificate", "match", "匹配", "公钥", "san"]
   }
 ];
 
 const categoryOrder = ["数据处理", "编码转换", "证书工具", "本地工具"];
 let activeToolCategory = "全部";
+const frequentSubfeatureKey = "wrench:frequent-subfeatures";
+const frequentSubfeatureLimit = 2;
+
+function readFrequentSubfeatures() {
+  try {
+    return JSON.parse(localStorage.getItem(frequentSubfeatureKey) || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeFrequentSubfeatures(items) {
+  try {
+    localStorage.setItem(frequentSubfeatureKey, JSON.stringify(items.slice(0, frequentSubfeatureLimit)));
+  } catch (e) {
+    // Recent feature tracking is optional UI metadata; tool execution must not depend on browser storage.
+  }
+}
+
+function renderFrequentSubfeatures() {
+  const el = $("appFrequentSubfeatures");
+  if (!el) return;
+
+  const items = readFrequentSubfeatures()
+    .sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastUsed || 0) - (a.lastUsed || 0))
+    .slice(0, frequentSubfeatureLimit);
+
+  el.replaceChildren();
+  el.hidden = items.length === 0;
+  if (items.length === 0) return;
+
+  const title = document.createElement("div");
+  title.className = "app-frequent-title";
+  title.textContent = "常用子功能";
+  el.appendChild(title);
+
+  items.forEach(item => {
+    const a = document.createElement("a");
+    a.className = "app-frequent-link";
+    a.href = item.href || "/";
+    a.textContent = item.label;
+    el.appendChild(a);
+  });
+}
+
+function recordSubfeatureUse(id, label, href) {
+  if (!id || !label) return;
+  const items = readFrequentSubfeatures();
+  const existing = items.find(item => item.id === id);
+  if (existing) {
+    existing.count = (existing.count || 0) + 1;
+    existing.lastUsed = Date.now();
+  } else {
+    items.push({ id, label, href, count: 1, lastUsed: Date.now() });
+  }
+  // Only feature metadata is stored here; user input stays in sessionStorage or the live page.
+  writeFrequentSubfeatures(items.sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastUsed || 0) - (a.lastUsed || 0)));
+  renderFrequentSubfeatures();
+}
 
 function matchesTool(tool, query) {
   if (!query) return true;
@@ -152,6 +237,7 @@ function renderAppShell(activePage) {
       <input id="appToolSearch" type="search" placeholder="搜索工具" autocomplete="off">
       <button class="btn" id="appToolSearchClear">清空</button>
     </div>
+    <div id="appFrequentSubfeatures" class="app-frequent" hidden></div>
     <nav id="appSidebarTools" class="app-sidebar-tools" aria-label="工具列表"></nav>
   `;
 
@@ -186,6 +272,7 @@ function renderAppShell(activePage) {
     });
   }
 
+  renderFrequentSubfeatures();
   renderSidebarTools("", activePage);
 }
 
@@ -449,13 +536,13 @@ function persistField(el) {
 }
 
 function persistPageState() {
-  document.querySelectorAll("textarea[id]").forEach(persistField);
+  document.querySelectorAll("textarea[id], input[id]").forEach(persistField);
 }
 
 function restorePageState(page) {
   if (!page) return;
 
-  document.querySelectorAll("textarea[id]").forEach(el => {
+  document.querySelectorAll("textarea[id], input[id]").forEach(el => {
     const value = sessionStorage.getItem(storageKey(page, el.id));
     if (value !== null) {
       el.value = value;
@@ -660,6 +747,7 @@ function formatCSR() {
     const pem = normalizePEM(parsed.csr, "csr");
     outEl.value = pem;
     setStatus("完成", "ok");
+    recordSubfeatureUse("csr-format", "CSR 格式化", "/csr");
     if (btnCopy) btnCopy.disabled = false;
     if (btnToJSON) btnToJSON.disabled = false;
     parseCSR(pem, { quiet: true });
@@ -733,6 +821,7 @@ async function parseCSR(input, options = {}) {
   try {
     const info = parseCSRPEM(csrText);
     renderCSRInfo(info);
+    if (!options.quiet) recordSubfeatureUse("csr-parse", "CSR 解析", "/csr");
     if (outEl && !outEl.value && info.pem) {
       outEl.value = info.pem;
       persistPageState();
@@ -978,6 +1067,7 @@ async function splitCertChain() {
 
     renderCertList(certs);
     setStatus(`完成，共拆分出 ${count} 个证书`, "ok");
+    recordSubfeatureUse("cert-split", "拆分证书", "/cert");
   } catch (e) {
     setStatus(e.message, "err");
   } finally {
@@ -1411,6 +1501,7 @@ function showJSONTableView() {
     renderJSONTable(fields);
     card.hidden = false;
     setStatus("表格视图已生成", "ok");
+    recordSubfeatureUse("json-table", "JSON 表格视图", "/json");
   } catch (e) {
     clearJSONTableView();
     setStatus("表格视图生成失败：" + e.message, "err");
@@ -1446,6 +1537,7 @@ function formatJSON() {
   try {
     setJSONOutputValue(formatJSONText(jsonText, indent));
     setStatus("格式化完成", "ok");
+    recordSubfeatureUse("json-format", "JSON 格式化", "/json");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
     if (btnJSONTable) btnJSONTable.disabled = false;
@@ -1485,6 +1577,7 @@ function minifyJSON() {
   try {
     setJSONOutputValue(minifyJSONText(jsonText));
     setStatus("压缩完成", "ok");
+    recordSubfeatureUse("json-minify", "JSON 压缩", "/json");
     if (btnCopy) btnCopy.disabled = false;
     if (btnSave) btnSave.disabled = false;
     if (btnJSONTable) btnJSONTable.disabled = false;
@@ -1645,6 +1738,11 @@ function runTextTransform(transform, doneMessage) {
   }
 }
 
+function runTextAction(action) {
+  runTextTransform(action.transform, action.doneMessage);
+  recordSubfeatureUse(action.id || action.buttonId, action.label || action.doneMessage, action.href || `/${currentPage()}`);
+}
+
 function wireTextToolPage(actions) {
   const btnClear = $("btnClear");
   const btnCopy = $("btnCopy");
@@ -1657,7 +1755,7 @@ function wireTextToolPage(actions) {
     const btn = $(action.buttonId);
     if (btn) {
       btn.addEventListener("click", () => {
-        runTextTransform(action.transform, action.doneMessage);
+        runTextAction(action);
       });
     }
   });
@@ -1695,7 +1793,7 @@ function wireTextToolPage(actions) {
     inEl.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        runTextTransform(actions[0].transform, actions[0].doneMessage);
+        runTextAction(actions[0]);
       }
     });
   }
@@ -1704,11 +1802,17 @@ function wireTextToolPage(actions) {
 function wireBase64Page() {
   wireTextToolPage([
     {
+      id: "base64-encode",
+      label: "Base64 编码",
+      href: "/base64",
       buttonId: "btnEncode",
       transform: utf8ToBase64,
       doneMessage: "编码完成"
     },
     {
+      id: "base64-decode",
+      label: "Base64 解码",
+      href: "/base64",
       buttonId: "btnDecode",
       transform: base64ToUtf8,
       doneMessage: "解码完成"
@@ -1719,11 +1823,17 @@ function wireBase64Page() {
 function wireURLPage() {
   wireTextToolPage([
     {
+      id: "url-encode",
+      label: "URL 编码",
+      href: "/url",
       buttonId: "btnEncode",
       transform: encodeURLText,
       doneMessage: "编码完成"
     },
     {
+      id: "url-decode",
+      label: "URL 解码",
+      href: "/url",
       buttonId: "btnDecode",
       transform: decodeURLText,
       doneMessage: "解码完成"
@@ -1745,6 +1855,47 @@ function runPGArrayTransform() {
     }),
     "转换完成"
   );
+  recordSubfeatureUse("pg-array-convert", "PG Array 转换", "/pg-array");
+}
+
+function currentTextLineOptions(sort) {
+  const trimEl = $("trimLines");
+  const dropEmptyEl = $("dropEmptyLines");
+  const caseSensitiveEl = $("caseSensitive");
+  return {
+    trim: trimEl ? trimEl.checked : true,
+    dropEmpty: dropEmptyEl ? dropEmptyEl.checked : true,
+    caseSensitive: caseSensitiveEl ? caseSensitiveEl.checked : true,
+    unique: true,
+    sort
+  };
+}
+
+function runTextLineTransform(sort, label) {
+  runTextTransform(text => transformLines(text, currentTextLineOptions(sort)), "处理完成");
+  recordSubfeatureUse(`text-${sort || "dedup"}`, label, "/text");
+}
+
+function wireTextPage() {
+  const btnDedup = $("btnDedup");
+  const btnSortAsc = $("btnSortAsc");
+  const btnSortDesc = $("btnSortDesc");
+  const inEl = $("input");
+
+  if (btnDedup) btnDedup.addEventListener("click", () => runTextLineTransform("", "文本去重"));
+  if (btnSortAsc) btnSortAsc.addEventListener("click", () => runTextLineTransform("asc", "文本升序排序"));
+  if (btnSortDesc) btnSortDesc.addEventListener("click", () => runTextLineTransform("desc", "文本降序排序"));
+
+  wireTextToolPage([]);
+
+  if (inEl) {
+    inEl.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runTextLineTransform("", "文本去重");
+      }
+    });
+  }
 }
 
 function wirePGArrayPage() {
@@ -1797,6 +1948,408 @@ function wirePGArrayPage() {
   }
 }
 
+function arrayIncludesAll(container, expected) {
+  const actual = new Set((container || []).filter(Boolean));
+  return (expected || []).filter(Boolean).every(item => actual.has(item));
+}
+
+function renderMatchResult(rows) {
+  const el = $("matchResult");
+  if (!el) return;
+
+  el.classList.remove("empty-state");
+  el.innerHTML = rows.map(row => `
+    <div class="info-item ${row.ok ? "match-ok" : "match-bad"}">
+      <div class="info-label">${escapeHTML(row.label)}</div>
+      <div class="info-value">${escapeHTML(row.value)}</div>
+    </div>
+  `).join("");
+}
+
+function resetMatchResult() {
+  const el = $("matchResult");
+  if (!el) return;
+  el.classList.add("empty-state");
+  el.textContent = "暂无匹配结果";
+}
+
+async function runCertMatch() {
+  const csrEl = $("csrInput");
+  const certEl = $("certInput");
+  const btn = $("btnMatch");
+  const csrText = csrEl ? csrEl.value.trim() : "";
+  const certText = certEl ? certEl.value.trim() : "";
+
+  if (!csrText || !certText) {
+    setStatus("CSR 和证书都不能为空", "err");
+    resetMatchResult();
+    return;
+  }
+
+  setStatus("匹配中...", "");
+  if (btn) btn.disabled = true;
+
+  try {
+    const csr = parseCSRPEM(csrText);
+    const cert = await parseCertificatePEM(certText);
+    const publicKeyOK = Boolean(csr.publicKeyHex && cert.publicKeyHex && csr.publicKeyHex === cert.publicKeyHex);
+    const cnOK = Boolean(csr.commonName && cert.commonName && csr.commonName === cert.commonName);
+    const dnsOK = arrayIncludesAll(cert.dnsNames, csr.dnsNames);
+    const ipOK = arrayIncludesAll(cert.ipAddresses, csr.ipAddresses);
+
+    renderMatchResult([
+      {
+        label: "公钥",
+        ok: publicKeyOK,
+        value: publicKeyOK
+          ? `${csr.publicKeyAlgorithm} ${csr.publicKeySize || ""} bits 一致`
+          : `不一致：CSR=${csr.publicKeyAlgorithm} ${csr.publicKeySize || ""} bits，证书=${cert.publicKeyAlgorithm} ${cert.publicKeySize || ""} bits`
+      },
+      {
+        label: "Common Name",
+        ok: cnOK,
+        value: cnOK ? csr.commonName : `CSR=${csr.commonName || "N/A"}，证书=${cert.commonName || "N/A"}`
+      },
+      {
+        label: "DNS SAN",
+        ok: dnsOK,
+        value: (csr.dnsNames || []).length ? `CSR: ${(csr.dnsNames || []).join(", ")}；证书覆盖: ${dnsOK ? "是" : "否"}` : "CSR 未包含 DNS SAN"
+      },
+      {
+        label: "IP SAN",
+        ok: ipOK,
+        value: (csr.ipAddresses || []).length ? `CSR: ${(csr.ipAddresses || []).join(", ")}；证书覆盖: ${ipOK ? "是" : "否"}` : "CSR 未包含 IP SAN"
+      }
+    ]);
+
+    setStatus(publicKeyOK ? "匹配完成：公钥一致" : "匹配完成：公钥不一致", publicKeyOK ? "ok" : "err");
+    recordSubfeatureUse("cert-match", "CSR 与证书匹配", "/cert-match");
+  } catch (e) {
+    setStatus("匹配失败：" + e.message, "err");
+    resetMatchResult();
+  } finally {
+    if (btn) btn.disabled = false;
+    persistPageState();
+  }
+}
+
+function wireCertMatchPage() {
+  const btnMatch = $("btnMatch");
+  const btnClear = $("btnClear");
+  const btnFullscreenCSR = $("btnFullscreenCSR");
+  const btnFullscreenCert = $("btnFullscreenCert");
+  const csrEl = $("csrInput");
+  const certEl = $("certInput");
+
+  if (btnMatch) btnMatch.addEventListener("click", runCertMatch);
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (csrEl) csrEl.value = "";
+      if (certEl) certEl.value = "";
+      setStatus("", "");
+      resetMatchResult();
+      persistPageState();
+    });
+  }
+
+  if (btnFullscreenCSR && csrEl) {
+    btnFullscreenCSR.addEventListener("click", () => openFullscreenOverlay(csrEl, "CSR"));
+  }
+
+  if (btnFullscreenCert && certEl) {
+    btnFullscreenCert.addEventListener("click", () => openFullscreenOverlay(certEl, "证书"));
+  }
+
+  [csrEl, certEl].forEach(el => {
+    if (!el) return;
+    el.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runCertMatch();
+      }
+    });
+  });
+}
+
+function renderTimeResult(rows) {
+  const el = $("timeResult");
+  if (!el) return;
+
+  el.classList.remove("empty-state");
+  el.innerHTML = rows.map(([label, value]) => `
+    <div class="info-item">
+      <div class="info-label">${escapeHTML(label)}</div>
+      <div class="info-value">${escapeHTML(value)}</div>
+    </div>
+  `).join("");
+}
+
+function resetTimeResult() {
+  const el = $("timeResult");
+  if (!el) return;
+  el.classList.add("empty-state");
+  el.textContent = "暂无计算结果";
+}
+
+function currentDateTimeText() {
+  return formatDateTime(new Date());
+}
+
+let activeDateTimeInput = null;
+let pickerDate = new Date();
+let pickerMonth = new Date();
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function dateParts(date) {
+  return {
+    date: `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`,
+    hour: pad2(date.getHours()),
+    minute: pad2(date.getMinutes()),
+    second: pad2(date.getSeconds())
+  };
+}
+
+function setDateTimeInput(input, date) {
+  if (!input) return;
+  input.value = formatDateTime(date);
+  persistField(input);
+}
+
+function selectedPickerDateTime() {
+  const hour = Number($("pickerHour")?.value || 0);
+  const minute = Number($("pickerMinute")?.value || 0);
+  const second = Number($("pickerSecond")?.value || 0);
+  return new Date(pickerDate.getFullYear(), pickerDate.getMonth(), pickerDate.getDate(), hour, minute, second);
+}
+
+function renderDateTimePicker() {
+  const picker = $("dateTimePicker");
+  if (!picker || !activeDateTimeInput) return;
+
+  const monthTitle = $("pickerMonthTitle");
+  if (monthTitle) monthTitle.textContent = `${pickerMonth.getFullYear()} 年 ${pickerMonth.getMonth() + 1} 月`;
+
+  const grid = $("pickerCalendarGrid");
+  if (!grid) return;
+  grid.replaceChildren();
+
+  ["日", "一", "二", "三", "四", "五", "六"].forEach(day => {
+    const el = document.createElement("div");
+    el.className = "datetime-picker-weekday";
+    el.textContent = day;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(pickerMonth.getFullYear(), pickerMonth.getMonth(), 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  const todayText = dateParts(new Date()).date;
+  const selectedText = dateParts(pickerDate).date;
+
+  for (let i = 0; i < 42; i += 1) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    const dayText = dateParts(day).date;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "datetime-picker-day";
+    button.classList.toggle("muted", day.getMonth() !== pickerMonth.getMonth());
+    button.classList.toggle("today", dayText === todayText);
+    button.classList.toggle("selected", dayText === selectedText);
+    button.textContent = String(day.getDate());
+    button.addEventListener("click", () => {
+      pickerDate = day;
+      setDateTimeInput(activeDateTimeInput, selectedPickerDateTime());
+      renderDateTimePicker();
+    });
+    grid.appendChild(button);
+  }
+}
+
+function ensureDateTimePicker() {
+  let picker = $("dateTimePicker");
+  if (picker) return picker;
+
+  picker = document.createElement("div");
+  picker.id = "dateTimePicker";
+  picker.className = "datetime-picker-popover";
+  picker.innerHTML = `
+    <div class="datetime-picker-header">
+      <button type="button" class="datetime-picker-nav" id="pickerPrevMonth">‹</button>
+      <div class="datetime-picker-title" id="pickerMonthTitle"></div>
+      <button type="button" class="datetime-picker-nav" id="pickerNextMonth">›</button>
+    </div>
+    <div class="datetime-picker-grid" id="pickerCalendarGrid"></div>
+    <div class="datetime-picker-time">
+      <label><span>HH</span><input id="pickerHour" class="input" type="number" min="0" max="23"></label>
+      <label><span>mm</span><input id="pickerMinute" class="input" type="number" min="0" max="59"></label>
+      <label><span>ss</span><input id="pickerSecond" class="input" type="number" min="0" max="59"></label>
+    </div>
+    <div class="datetime-picker-actions">
+      <button type="button" class="btn" id="pickerNow">现在</button>
+      <button type="button" class="btn primary" id="pickerDone">确定</button>
+    </div>
+  `;
+  document.body.appendChild(picker);
+
+  $("pickerPrevMonth").addEventListener("click", () => {
+    pickerMonth = new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() - 1, 1);
+    renderDateTimePicker();
+  });
+  $("pickerNextMonth").addEventListener("click", () => {
+    pickerMonth = new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() + 1, 1);
+    renderDateTimePicker();
+  });
+  ["pickerHour", "pickerMinute", "pickerSecond"].forEach(id => {
+    $(id).addEventListener("input", () => {
+      if (activeDateTimeInput) setDateTimeInput(activeDateTimeInput, selectedPickerDateTime());
+    });
+  });
+  $("pickerNow").addEventListener("click", () => {
+    const now = new Date();
+    pickerDate = now;
+    pickerMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    setPickerTime(now);
+    setDateTimeInput(activeDateTimeInput, now);
+    renderDateTimePicker();
+  });
+  $("pickerDone").addEventListener("click", hideDateTimePicker);
+
+  document.addEventListener("click", e => {
+    if (!picker.classList.contains("active")) return;
+    if (picker.contains(e.target) || e.target === activeDateTimeInput) return;
+    hideDateTimePicker();
+  });
+
+  return picker;
+}
+
+function setPickerTime(date) {
+  $("pickerHour").value = pad2(date.getHours());
+  $("pickerMinute").value = pad2(date.getMinutes());
+  $("pickerSecond").value = pad2(date.getSeconds());
+}
+
+function showDateTimePicker(input) {
+  activeDateTimeInput = input;
+  let date;
+  try {
+    date = input.value ? parseDateTime(input.value) : new Date();
+  } catch (e) {
+    date = new Date();
+  }
+  pickerDate = date;
+  pickerMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+
+  const picker = ensureDateTimePicker();
+  setPickerTime(date);
+  renderDateTimePicker();
+
+  const rect = input.getBoundingClientRect();
+  picker.style.left = `${Math.min(rect.left, window.innerWidth - 360)}px`;
+  picker.style.top = `${rect.bottom + 8}px`;
+  picker.classList.add("active");
+}
+
+function hideDateTimePicker() {
+  const picker = $("dateTimePicker");
+  if (picker) picker.classList.remove("active");
+}
+
+function runTimeDiff() {
+  const startEl = $("startTime");
+  const endEl = $("endTime");
+  const startValue = startEl ? startEl.value : "";
+  const endValue = endEl ? endEl.value : "";
+
+  try {
+    const result = diffDateTimes(startValue, endValue);
+    renderTimeResult([
+      ["开始时间", startValue],
+      ["结束时间", endValue],
+      ["相差天数", `${result.days.toFixed(6)} 天`],
+      ["绝对天数", `${result.absDays.toFixed(6)} 天`],
+      ["小时", `${result.hours.toFixed(3)} 小时`],
+      ["分钟", `${result.minutes.toFixed(3)} 分钟`],
+      ["秒", `${result.seconds.toFixed(3)} 秒`],
+      ["毫秒", `${result.milliseconds} ms`]
+    ]);
+    setStatus("时间差计算完成", "ok");
+    recordSubfeatureUse("time-diff", "时间差计算", "/time");
+    persistPageState();
+  } catch (e) {
+    setStatus("计算失败：" + e.message, "err");
+    resetTimeResult();
+  }
+}
+
+function runAddDays() {
+  const baseEl = $("baseTime");
+  const daysEl = $("daysDelta");
+  const baseValue = baseEl ? baseEl.value : "";
+
+  try {
+    const result = addDaysToDateTime(baseValue, daysEl ? daysEl.value : "");
+    renderTimeResult([
+      ["计算结果", formatDateTime(result)],
+      ["ISO 时间", result.toISOString()],
+      ["时间戳秒", String(Math.floor(result.getTime() / 1000))],
+      ["时间戳毫秒", String(result.getTime())]
+    ]);
+    setStatus("日期计算完成", "ok");
+    recordSubfeatureUse("time-add-days", "时间加减天数", "/time");
+    persistPageState();
+  } catch (e) {
+    setStatus("计算失败：" + e.message, "err");
+    resetTimeResult();
+  }
+}
+
+function wireTimePage() {
+  const btnDiffTime = $("btnDiffTime");
+  const btnAddDays = $("btnAddDays");
+  const btnClear = $("btnClear");
+  const startEl = $("startTime");
+  const endEl = $("endTime");
+  const baseEl = $("baseTime");
+  const daysEl = $("daysDelta");
+
+  if (btnDiffTime) btnDiffTime.addEventListener("click", runTimeDiff);
+  if (btnAddDays) btnAddDays.addEventListener("click", runAddDays);
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      [startEl, endEl, baseEl, daysEl].forEach(el => {
+        if (el) el.value = "";
+      });
+      setStatus("", "");
+      resetTimeResult();
+      persistPageState();
+    });
+  }
+
+  [startEl, endEl, baseEl].forEach(el => {
+    if (!el) return;
+    el.addEventListener("click", () => showDateTimePicker(el));
+    el.addEventListener("focus", () => showDateTimePicker(el));
+  });
+
+  [startEl, endEl, baseEl, daysEl].forEach(el => {
+    if (!el) return;
+    el.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (el === baseEl || el === daysEl) runAddDays();
+        else runTimeDiff();
+      }
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body ? document.body.dataset.page : null;
 
@@ -1816,6 +2369,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (page === "cert") {
     wireCertPage();
   }
+  if (page === "cert-match") {
+    wireCertMatchPage();
+  }
   if (page === "json") {
     wireJSONPage();
     wireJSONContextActions();
@@ -1828,6 +2384,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (page === "pg-array") {
     wirePGArrayPage();
+  }
+  if (page === "text") {
+    wireTextPage();
+  }
+  if (page === "time") {
+    wireTimePage();
   }
   syncRestoredControls();
 });

@@ -58,7 +58,7 @@ package-linux:
 	@echo "Copying web static files..."
 	cp -r web $(PACKAGE_DIR)/
 	@echo "Creating tar.gz package..."
-	cd $(DIST_DIR) && tar -czf $(PACKAGE_NAME).tar.gz $(PACKAGE_NAME)
+	cd $(DIST_DIR) && COPYFILE_DISABLE=1 tar -czf $(PACKAGE_NAME).tar.gz $(PACKAGE_NAME)
 	@echo "Cleaning up temporary directory..."
 	rm -rf $(PACKAGE_DIR)
 	@echo "Package created: $(DIST_DIR)/$(PACKAGE_NAME).tar.gz"

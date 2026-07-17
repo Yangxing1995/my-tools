@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>时间计算 - Wrench</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+</head>
+<body data-page="time">
+<div class="container">
+    <div class="header">
+        <div class="brand">
+            <h1>时间计算</h1>
+            <div class="sub">计算两个时间差值，或给时间加减天数</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card half">
+            <h2>时间差</h2>
+            <div class="form-grid">
+                <label>
+                    <span>开始时间</span>
+                    <input id="startTime" class="input datetime-picker-input" readonly placeholder="点击选择开始时间">
+                </label>
+                <label>
+                    <span>结束时间</span>
+                    <input id="endTime" class="input datetime-picker-input" readonly placeholder="点击选择结束时间">
+                </label>
+            </div>
+            <div class="toolbar">
+                <button class="btn primary" id="btnDiffTime">计算差值</button>
+            </div>
+        </div>
+
+        <div class="card half">
+            <h2>加减天数</h2>
+            <div class="form-grid">
+                <label>
+                    <span>基准时间</span>
+                    <input id="baseTime" class="input datetime-picker-input" readonly placeholder="点击选择基准时间">
+                </label>
+                <label>
+                    <span>天数</span>
+                    <input id="daysDelta" class="input" type="number" step="0.000001" placeholder="30 或 -7">
+                </label>
+            </div>
+            <div class="toolbar">
+                <button class="btn primary" id="btnAddDays">计算日期</button>
+                <button class="btn" id="btnClear">清空</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>结果</h2>
+            <div id="status" class="status"></div>
+            <div id="timeResult" class="info-grid empty-state">暂无计算结果</div>
+        </div>
+
+        <div class="card">
+            <h2>说明</h2>
+            <p>点击时间输入框可打开日历和时分秒选择器；时间按浏览器本地时区计算。</p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/utils.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

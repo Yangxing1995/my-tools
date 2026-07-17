@@ -33,8 +33,11 @@ go run ./cmd/wrench serve -addr 127.0.0.1:8111 -static-dir web/static
 - Base64 编解码：按 UTF-8 文本处理。
 - URL 编解码：处理 URL percent-encoding。
 - PG Array 转换：把换行、逗号或空格分隔的一串 ID 转成 PostgreSQL 查询片段。
+- 文本去重排序：按行去重、排序和清理空行。
+- 时间计算：计算两个时间的差值，或给一个时间加减天数。
 - CSR 格式化/解析：规范化 PEM，展示 Subject、SAN、公钥和签名算法等字段。
 - 证书格式化/解析：拆分证书链，展示 Subject、Issuer、有效期、序列号、SHA1、公钥和签名算法等字段。
+- CSR 与证书匹配：比较 CSR 和证书的公钥、CN 和 SAN。
 
 ## 纯前端实现约束
 

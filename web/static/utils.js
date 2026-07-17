@@ -300,6 +300,7 @@
 
   function parseSubjectPublicKeyInfo(node) {
     const algorithm = parseAlgorithmIdentifier(node.children[0]);
+    const publicKeyHex = bytesToHex(node.bytes.slice(node.start, node.end)).toUpperCase();
     let publicKeySize = 0;
     if (algorithm === "RSA" && node.children[1]) {
       try {
@@ -313,7 +314,7 @@
     } else if ((algorithm === "ECDSA" || algorithm === "SM2") && node.children[1]) {
       publicKeySize = Math.max(0, node.children[1].valueEnd - node.children[1].valueStart - 1) * 8;
     }
-    return { algorithm, publicKeySize };
+    return { algorithm, publicKeySize, publicKeyHex };
   }
 
   function parseGeneralNames(node) {
@@ -423,15 +424,26 @@
     return {
       pem: normalized,
       subject: subject.text,
+      commonName: subject.fields.commonName,
+      country: subject.fields.country,
+      organization: subject.fields.organization,
+      organizationalUnit: subject.fields.organizationalUnit,
+      locality: subject.fields.locality,
+      province: subject.fields.province,
       issuer: issuer.text,
       notBefore: decodeTime(validity.children[0]),
       notAfter: decodeTime(validity.children[1]),
       serialNumber,
       version,
       isCA: Boolean(extensions.isCA),
+      dnsNames: extensions.dnsNames || [],
+      emailAddresses: extensions.emailAddresses || [],
+      ipAddresses: extensions.ipAddresses || [],
+      uris: extensions.uris || [],
       sha1: await sha1Hex(bytes),
       publicKeyAlgorithm: publicKey.algorithm,
       publicKeySize: publicKey.publicKeySize,
+      publicKeyHex: publicKey.publicKeyHex,
       signatureAlgorithm
     };
   }
@@ -459,6 +471,7 @@
       uris: extensions.uris,
       publicKeyAlgorithm: publicKey.algorithm,
       publicKeySize: publicKey.publicKeySize,
+      publicKeyHex: publicKey.publicKeyHex,
       signatureAlgorithm: parseAlgorithmIdentifier(rootNode.children[1])
     };
   }
@@ -625,6 +638,84 @@
     throw new Error("未知输出模式");
   }
 
+  function transformLines(input, options = {}) {
+    let lines = String(input || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    if (options.trim !== false) {
+      lines = lines.map(line => line.trim());
+    }
+    if (options.dropEmpty !== false) {
+      lines = lines.filter(line => line.length > 0);
+    }
+    if (options.unique !== false) {
+      const seen = new Set();
+      lines = lines.filter(line => {
+        const key = options.caseSensitive === false ? line.toLowerCase() : line;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    if (options.sort) {
+      const direction = options.sort === "desc" ? -1 : 1;
+      lines = [...lines].sort((a, b) => direction * a.localeCompare(b, "zh-CN", { numeric: true }));
+    }
+    if (lines.length === 0) throw new Error("输入为空");
+    return lines.join("\n");
+  }
+
+  function parseDateTime(input) {
+    const text = String(input || "").trim();
+    if (!text) throw new Error("时间为空");
+
+    if (/^-?\d+$/.test(text)) {
+      const n = Number(text);
+      const ms = Math.abs(n) < 100000000000 ? n * 1000 : n;
+      const d = new Date(ms);
+      if (Number.isNaN(d.getTime())) throw new Error("时间戳无效");
+      return d;
+    }
+
+    const normalized = text.includes("T") ? text : text.replace(" ", "T");
+    const d = new Date(normalized);
+    if (Number.isNaN(d.getTime())) {
+      throw new Error("时间格式无效");
+    }
+    return d;
+  }
+
+  function formatDateTime(date) {
+    const pad = n => String(n).padStart(2, "0");
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const mm = pad(date.getMinutes());
+    const ss = pad(date.getSeconds());
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+  }
+
+  function diffDateTimes(start, end) {
+    const startDate = parseDateTime(start);
+    const endDate = parseDateTime(end);
+    const diffMs = endDate.getTime() - startDate.getTime();
+    const absMs = Math.abs(diffMs);
+    return {
+      milliseconds: diffMs,
+      seconds: diffMs / 1000,
+      minutes: diffMs / 60000,
+      hours: diffMs / 3600000,
+      days: diffMs / 86400000,
+      absDays: absMs / 86400000
+    };
+  }
+
+  function addDaysToDateTime(input, days) {
+    const date = parseDateTime(input);
+    const n = Number(days);
+    if (!Number.isFinite(n)) throw new Error("天数无效");
+    return new Date(date.getTime() + n * 86400000);
+  }
+
   const api = {
     normalizeEscapedText,
     normalizePEM,
@@ -640,7 +731,12 @@
     encodeURLText,
     decodeURLText,
     splitIDText,
-    toPGArray
+    toPGArray,
+    transformLines,
+    parseDateTime,
+    formatDateTime,
+    diffDateTimes,
+    addDaysToDateTime
   };
 
   root.WrenchUtils = api;

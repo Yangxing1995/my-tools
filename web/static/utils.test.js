@@ -77,6 +77,19 @@ test("toPGArray supports forced modes and duplicates", () => {
   assert.throws(() => utils.toPGArray("1 A", { mode: "number" }), /数字模式包含非数字值/);
 });
 
+test("transformLines deduplicates and sorts lines", () => {
+  const input = " beta\nalpha\nBeta\nalpha\n";
+  assert.equal(utils.transformLines(input, { sort: "asc", caseSensitive: false }), "alpha\nbeta");
+  assert.equal(utils.transformLines(input, { sort: "desc", unique: false }), "Beta\nbeta\nalpha\nalpha");
+});
+
+test("time helpers diff and add days", () => {
+  const diff = utils.diffDateTimes("2026-07-17 00:00:00", "2026-07-20 12:00:00");
+  assert.equal(diff.days, 3.5);
+  const added = utils.addDaysToDateTime("2026-07-17 00:00:00", 2);
+  assert.equal(utils.formatDateTime(added), "2026-07-19 00:00:00");
+});
+
 test("normalizePEM wraps escaped CSR input", () => {
   const body = sampleCSR
     .replace("-----BEGIN CERTIFICATE REQUEST-----", "")
@@ -101,6 +114,7 @@ test("parseCertificatePEM extracts common fields", async () => {
   assert.equal(cert.issuer, "CN=example.test, O=Wrench, OU=Frontend");
   assert.equal(cert.publicKeyAlgorithm, "RSA");
   assert.equal(cert.publicKeySize, 2048);
+  assert.ok(cert.publicKeyHex.length > 0);
   assert.equal(cert.signatureAlgorithm, "SHA256-RSA");
   assert.equal(cert.version, 3);
   assert.equal(cert.isCA, true);
@@ -114,5 +128,6 @@ test("parseCSRPEM extracts subject and SAN", () => {
   assert.deepEqual(csr.dnsNames, ["csr.example.test", "www.csr.example.test"]);
   assert.equal(csr.publicKeyAlgorithm, "RSA");
   assert.equal(csr.publicKeySize, 2048);
+  assert.ok(csr.publicKeyHex.length > 0);
   assert.equal(csr.signatureAlgorithm, "SHA256-RSA");
 });

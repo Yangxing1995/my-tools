@@ -34,7 +34,11 @@ func NewWithStaticDir(staticDir string) *Server {
 	e.GET("/cert", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "cert.html"))
 	})
-	// JSON 格式化页面
+	// CSR 与证书匹配页面
+	e.GET("/cert-match", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "cert-match.html"))
+	})
+	// JSON 解析器页面
 	e.GET("/json", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "json.html"))
 	})
@@ -49,6 +53,14 @@ func NewWithStaticDir(staticDir string) *Server {
 	// PG Array 转换页面
 	e.GET("/pg-array", func(c *gin.Context) {
 		c.File(filepath.Join(staticDir, "pg-array.html"))
+	})
+	// 文本处理页面
+	e.GET("/text", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "text.html"))
+	})
+	// 时间计算页面
+	e.GET("/time", func(c *gin.Context) {
+		c.File(filepath.Join(staticDir, "time.html"))
 	})
 
 	e.GET("/healthz", func(c *gin.Context) {

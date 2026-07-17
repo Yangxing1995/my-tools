@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>CSR 与证书匹配 - Wrench</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+</head>
+<body data-page="cert-match">
+<div class="container">
+    <div class="header">
+        <div class="brand">
+            <h1>CSR 与证书匹配</h1>
+            <div class="sub">比较 CSR 和证书的公钥、CN 和 SAN</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card half">
+            <h2>CSR</h2>
+            <div class="toolbar">
+                <button class="btn" id="btnFullscreenCSR" title="全屏">全屏</button>
+            </div>
+            <textarea class="textarea" id="csrInput" placeholder="粘贴 CSR PEM"></textarea>
+        </div>
+
+        <div class="card half">
+            <h2>证书</h2>
+            <div class="toolbar">
+                <button class="btn" id="btnFullscreenCert" title="全屏">全屏</button>
+            </div>
+            <textarea class="textarea" id="certInput" placeholder="粘贴证书 PEM"></textarea>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <button class="btn primary" id="btnMatch">匹配</button>
+                <button class="btn" id="btnClear">清空</button>
+            </div>
+            <div id="status" class="status"></div>
+            <div id="matchResult" class="info-grid empty-state">暂无匹配结果</div>
+        </div>
+
+        <div class="card">
+            <h2>说明</h2>
+            <p>公钥匹配使用 CSR 和证书中的 SubjectPublicKeyInfo 做精确比较；CN 和 SAN 作为辅助检查。</p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/utils.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

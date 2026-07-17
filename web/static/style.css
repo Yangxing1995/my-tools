@@ -205,6 +205,34 @@ a:hover { text-decoration: underline; }
   justify-content: center;
 }
 
+.app-frequent {
+  margin: -4px 0 14px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(18,27,46,0.42);
+}
+
+.app-frequent-title {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.app-frequent-link {
+  display: block;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.app-frequent-link:hover {
+  background: rgba(255,255,255,0.06);
+  text-decoration: none;
+}
+
 .app-sidebar-tool:hover,
 .app-sidebar-tool.active {
   background: rgba(255,255,255,0.06);
@@ -383,6 +411,151 @@ a:hover { text-decoration: underline; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(7, 11, 20, 0.6);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(96,165,250,0.45);
+  box-shadow: 0 0 0 3px rgba(96,165,250,0.12);
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.datetime-picker-input {
+  cursor: pointer;
+}
+
+.datetime-picker-popover {
+  position: fixed;
+  z-index: 10001;
+  display: none;
+  width: min(340px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid rgba(96,165,250,0.22);
+  border-radius: 12px;
+  background: rgba(15,23,42,0.98);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+}
+
+.datetime-picker-popover.active {
+  display: block;
+}
+
+.datetime-picker-header {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.datetime-picker-title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.datetime-picker-nav {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  height: 36px;
+}
+
+.datetime-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.datetime-picker-weekday {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.datetime-picker-day {
+  appearance: none;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.datetime-picker-day:hover {
+  background: rgba(96,165,250,0.16);
+}
+
+.datetime-picker-day.muted {
+  color: rgba(156,163,175,0.42);
+}
+
+.datetime-picker-day.today {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.datetime-picker-day.selected {
+  background: rgba(96,165,250,0.85);
+  color: #08111f;
+  font-weight: 700;
+}
+
+.datetime-picker-time {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.datetime-picker-time label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.datetime-picker-time .input {
+  margin-top: 5px;
+  text-align: center;
+}
+
+.datetime-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .small {
@@ -709,6 +882,14 @@ a:hover { text-decoration: underline; }
   word-break: break-all;
 }
 
+.info-item.match-ok {
+  border-color: rgba(52,211,153,0.26);
+}
+
+.info-item.match-bad {
+  border-color: rgba(248,113,113,0.28);
+}
+
 @media (max-width: 780px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -759,6 +940,7 @@ a:hover { text-decoration: underline; }
   .info-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 .cert-item {

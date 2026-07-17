@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>文本去重排序 - Wrench</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+</head>
+<body data-page="text">
+<div class="container">
+    <div class="header">
+        <div class="brand">
+            <h1>文本去重排序</h1>
+            <div class="sub">多行文本去重、排序和清理空行</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card half">
+            <h2>输入</h2>
+            <div class="toolbar">
+                <button class="btn primary" id="btnDedup">去重</button>
+                <button class="btn" id="btnSortAsc">升序</button>
+                <button class="btn" id="btnSortDesc">降序</button>
+                <button class="btn" id="btnClear">清空</button>
+                <button class="btn" id="btnFullscreenInput" title="全屏">全屏</button>
+            </div>
+            <div class="toolbar">
+                <label class="small"><input type="checkbox" id="trimLines" checked> 去掉首尾空白</label>
+                <label class="small"><input type="checkbox" id="dropEmptyLines" checked> 去空行</label>
+                <label class="small"><input type="checkbox" id="caseSensitive" checked> 区分大小写</label>
+            </div>
+            <textarea class="textarea" id="input" placeholder="粘贴多行文本，例如 ID、域名、日志关键字等"></textarea>
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="card half">
+            <h2>输出</h2>
+            <div class="toolbar">
+                <button class="btn" id="btnCopy" disabled>复制</button>
+                <button class="btn" id="btnFullscreenOutput" title="全屏">全屏</button>
+            </div>
+            <textarea class="textarea" id="output" placeholder="处理后的结果将显示在这里"></textarea>
+        </div>
+
+        <div class="card">
+            <h2>说明</h2>
+            <p>本工具按行处理文本，适合批量 ID、域名、名称列表等内容的去重和排序。</p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/utils.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
