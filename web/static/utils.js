@@ -605,6 +605,14 @@
     return "'" + String(value).replace(/'/g, "''") + "'";
   }
 
+  function sortPGItems(items, mode, direction = "asc") {
+    const multiplier = direction === "desc" ? -1 : 1;
+    if (mode === "number") {
+      return [...items].sort((a, b) => multiplier * (Number(a) - Number(b)));
+    }
+    return [...items].sort((a, b) => multiplier * a.localeCompare(b, "zh-CN", { numeric: true }));
+  }
+
   function toPGArray(input, options = {}) {
     const mode = options.mode || "auto";
     const unique = options.unique !== false;
@@ -636,6 +644,27 @@
     }
 
     throw new Error("未知输出模式");
+  }
+
+  function sortPGInput(input, options = {}) {
+    const mode = options.mode || "auto";
+    let items = splitIDText(input);
+    if (items.length === 0) throw new Error("输入为空");
+
+    let effectiveMode = mode;
+    if (effectiveMode === "auto") {
+      effectiveMode = items.every(isNumericID) ? "number" : "string";
+    }
+
+    if (effectiveMode === "number") {
+      const invalid = items.find(item => !isNumericID(item));
+      if (invalid) throw new Error("数字模式包含非数字值：" + invalid);
+    } else if (effectiveMode !== "string") {
+      throw new Error("未知输出模式");
+    }
+
+    items = sortPGItems(items, effectiveMode, options.direction || "asc");
+    return items.join("\n");
   }
 
   function transformLines(input, options = {}) {
@@ -732,6 +761,7 @@
     decodeURLText,
     splitIDText,
     toPGArray,
+    sortPGInput,
     transformLines,
     parseDateTime,
     formatDateTime,

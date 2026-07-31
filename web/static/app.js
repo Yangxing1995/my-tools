@@ -13,7 +13,9 @@ const {
   base64ToUtf8,
   encodeURLText,
   decodeURLText,
+  splitIDText,
   toPGArray,
+  sortPGInput,
   transformLines,
   parseDateTime,
   formatDateTime,
@@ -1855,7 +1857,33 @@ function runPGArrayTransform() {
     }),
     "转换完成"
   );
+  updatePGArrayStats();
   recordSubfeatureUse("pg-array-convert", "PG Array 转换", "/pg-array");
+}
+
+function updatePGArrayStats() {
+  const statsEl = $("stats");
+  const inEl = $("input");
+  const outEl = $("output");
+  const uniqueEl = $("unique");
+  if (!statsEl || !inEl || !outEl) return;
+
+  const inputItems = splitIDText(inEl.value || "");
+  const outputText = outEl.value.trim();
+  if (!inputItems.length && !outputText) {
+    statsEl.textContent = "";
+    statsEl.classList.remove("ok", "err");
+    return;
+  }
+
+  const uniqueCount = Array.from(new Set(inputItems)).length;
+  const outputCount = uniqueEl && uniqueEl.checked ? uniqueCount : inputItems.length;
+  const inputLineCount = (inEl.value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(line => line.trim()).length;
+  statsEl.classList.remove("err");
+  statsEl.classList.add("ok");
+  statsEl.textContent = outputText
+    ? `统计：输入 ${inputLineCount} 行，识别 ${inputItems.length} 项，去重后 ${uniqueCount} 项，输出 ${outputCount} 项`
+    : `统计：输入 ${inputLineCount} 行，识别 ${inputItems.length} 项，去重后 ${uniqueCount} 项`;
 }
 
 function currentTextLineOptions(sort) {
@@ -1902,12 +1930,33 @@ function wirePGArrayPage() {
   const btnConvert = $("btnConvert");
   const btnClear = $("btnClear");
   const btnCopy = $("btnCopy");
+  const btnSortInput = $("btnSortInput");
   const btnFullscreenInput = $("btnFullscreenInput");
   const btnFullscreenOutput = $("btnFullscreenOutput");
   const inEl = $("input");
   const outEl = $("output");
+  const uniqueEl = $("unique");
+  let nextSortDirection = "asc";
 
   if (btnConvert) btnConvert.addEventListener("click", runPGArrayTransform);
+
+  if (btnSortInput && inEl) {
+    btnSortInput.addEventListener("click", () => {
+      try {
+        inEl.value = sortPGInput(inEl.value, {
+          mode: currentPGArrayMode(),
+          direction: nextSortDirection
+        });
+        nextSortDirection = nextSortDirection === "asc" ? "desc" : "asc";
+        btnSortInput.textContent = nextSortDirection === "asc" ? "排序 ↑" : "排序 ↓";
+        updatePGArrayStats();
+        setStatus("输入已排序", "ok");
+        persistPageState();
+      } catch (e) {
+        setStatus("排序失败：" + e.message, "err");
+      }
+    });
+  }
 
   if (btnCopy && outEl) {
     btnCopy.addEventListener("click", async () => {
@@ -1921,6 +1970,9 @@ function wirePGArrayPage() {
       if (inEl) inEl.value = "";
       if (outEl) outEl.value = "";
       setStatus("", "");
+      nextSortDirection = "asc";
+      if (btnSortInput) btnSortInput.textContent = "排序 ↑";
+      updatePGArrayStats();
       if (btnCopy) btnCopy.disabled = true;
       persistPageState();
     });
@@ -1939,6 +1991,11 @@ function wirePGArrayPage() {
   }
 
   if (inEl) {
+    inEl.addEventListener("input", () => {
+      nextSortDirection = "asc";
+      if (btnSortInput) btnSortInput.textContent = "排序 ↑";
+      updatePGArrayStats();
+    });
     inEl.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
@@ -1946,6 +2003,12 @@ function wirePGArrayPage() {
       }
     });
   }
+
+  if (outEl) outEl.addEventListener("input", updatePGArrayStats);
+
+  if (uniqueEl) uniqueEl.addEventListener("change", updatePGArrayStats);
+
+  updatePGArrayStats();
 }
 
 function arrayIncludesAll(container, expected) {

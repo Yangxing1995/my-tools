@@ -77,6 +77,12 @@ test("toPGArray supports forced modes and duplicates", () => {
   assert.throws(() => utils.toPGArray("1 A", { mode: "number" }), /数字模式包含非数字值/);
 });
 
+test("sortPGInput sorts input items without formatting them as SQL", () => {
+  assert.equal(utils.sortPGInput("10 2 1", { direction: "asc" }), "1\n2\n10");
+  assert.equal(utils.sortPGInput("10 2 1", { direction: "desc" }), "10\n2\n1");
+  assert.equal(utils.sortPGInput("b2 a10 a2", { direction: "asc" }), "a2\na10\nb2");
+});
+
 test("transformLines deduplicates and sorts lines", () => {
   const input = " beta\nalpha\nBeta\nalpha\n";
   assert.equal(utils.transformLines(input, { sort: "asc", caseSensitive: false }), "alpha\nbeta");
