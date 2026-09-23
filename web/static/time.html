@@ -22,11 +22,11 @@
             <div class="form-grid">
                 <label>
                     <span>开始时间</span>
-                    <input id="startTime" class="input datetime-picker-input" readonly placeholder="点击选择开始时间">
+                    <input id="startTime" class="input datetime-picker-input" autocomplete="off" spellcheck="false" placeholder="2023-10-25 15:57:24（可选择/粘贴/输入）">
                 </label>
                 <label>
                     <span>结束时间</span>
-                    <input id="endTime" class="input datetime-picker-input" readonly placeholder="点击选择结束时间">
+                    <input id="endTime" class="input datetime-picker-input" autocomplete="off" spellcheck="false" placeholder="2023-10-25 15:57:24（可选择/粘贴/输入）">
                 </label>
             </div>
             <div class="toolbar">
@@ -39,7 +39,7 @@
             <div class="form-grid">
                 <label>
                     <span>基准时间</span>
-                    <input id="baseTime" class="input datetime-picker-input" readonly placeholder="点击选择基准时间">
+                    <input id="baseTime" class="input datetime-picker-input" autocomplete="off" spellcheck="false" placeholder="2023-10-25 15:57:24（可选择/粘贴/输入）">
                 </label>
                 <label>
                     <span>天数</span>
@@ -60,7 +60,8 @@
 
         <div class="card">
             <h2>说明</h2>
-            <p>点击时间输入框可打开日历和时分秒选择器；时间按浏览器本地时区计算。</p>
+            <p>时间输入框支持三种方式：点击打开日历和时分秒选择器、直接手动输入、粘贴文本。</p>
+            <p>输入格式为 <code>2023-10-25 15:57:24</code>，也兼容省略秒/时分（<code>2023-10-25 15:57</code>、<code>2023-10-25</code>）、斜杠分隔（<code>2023/10/25 15:57:24</code>）以及 10 位秒级或 13 位毫秒级时间戳；失焦后会自动整理为标准格式，无法识别时输入框会标红。时间按浏览器本地时区计算。</p>
         </div>
     </div>
 </div>

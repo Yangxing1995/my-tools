@@ -2176,9 +2176,84 @@ function dateParts(date) {
   };
 }
 
+const DATETIME_TEXT_RE = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/;
+
+function parseDateTimeText(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+
+  if (/^-?\d{10,}$/.test(raw)) {
+    try {
+      return parseDateTime(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  const matched = raw.match(DATETIME_TEXT_RE);
+  if (!matched) return null;
+
+  const [, y, mo, d, hh = "0", mi = "0", ss = "0"] = matched;
+  const year = Number(y);
+  const month = Number(mo);
+  const day = Number(d);
+  const hour = Number(hh);
+  const minute = Number(mi);
+  const second = Number(ss);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  if (hour > 23 || minute > 59 || second > 59) return null;
+
+  const date = new Date(year, month - 1, day, hour, minute, second);
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+}
+
+function markDateTimeValidity(input, ok) {
+  if (input) input.classList.toggle("invalid", !ok);
+}
+
+function syncPickerFromText(input) {
+  if (activeDateTimeInput !== input) return;
+  const picker = $("dateTimePicker");
+  if (!picker || !picker.classList.contains("active")) return;
+
+  const date = parseDateTimeText(input.value);
+  if (!date) return;
+
+  pickerDate = date;
+  pickerMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  setPickerTime(date);
+  renderDateTimePicker();
+}
+
+function normalizeDateTimeField(input) {
+  if (!input) return "";
+
+  const raw = input.value.trim();
+  if (!raw) {
+    input.value = "";
+    markDateTimeValidity(input, true);
+    persistField(input);
+    return "";
+  }
+
+  const date = parseDateTimeText(raw);
+  if (!date) {
+    markDateTimeValidity(input, false);
+    return raw;
+  }
+
+  markDateTimeValidity(input, true);
+  input.value = formatDateTime(date);
+  persistField(input);
+  return input.value;
+}
+
 function setDateTimeInput(input, date) {
   if (!input) return;
   input.value = formatDateTime(date);
+  markDateTimeValidity(input, true);
   persistField(input);
 }
 
@@ -2299,12 +2374,7 @@ function setPickerTime(date) {
 
 function showDateTimePicker(input) {
   activeDateTimeInput = input;
-  let date;
-  try {
-    date = input.value ? parseDateTime(input.value) : new Date();
-  } catch (e) {
-    date = new Date();
-  }
+  const date = parseDateTimeText(input.value) || new Date();
   pickerDate = date;
   pickerMonth = new Date(date.getFullYear(), date.getMonth(), 1);
 
@@ -2326,8 +2396,8 @@ function hideDateTimePicker() {
 function runTimeDiff() {
   const startEl = $("startTime");
   const endEl = $("endTime");
-  const startValue = startEl ? startEl.value : "";
-  const endValue = endEl ? endEl.value : "";
+  const startValue = normalizeDateTimeField(startEl);
+  const endValue = normalizeDateTimeField(endEl);
 
   try {
     const result = diffDateTimes(startValue, endValue);
@@ -2353,7 +2423,7 @@ function runTimeDiff() {
 function runAddDays() {
   const baseEl = $("baseTime");
   const daysEl = $("daysDelta");
-  const baseValue = baseEl ? baseEl.value : "";
+  const baseValue = normalizeDateTimeField(baseEl);
 
   try {
     const result = addDaysToDateTime(baseValue, daysEl ? daysEl.value : "");
@@ -2387,7 +2457,9 @@ function wireTimePage() {
   if (btnClear) {
     btnClear.addEventListener("click", () => {
       [startEl, endEl, baseEl, daysEl].forEach(el => {
-        if (el) el.value = "";
+        if (!el) return;
+        el.value = "";
+        markDateTimeValidity(el, true);
       });
       setStatus("", "");
       resetTimeResult();
@@ -2399,6 +2471,16 @@ function wireTimePage() {
     if (!el) return;
     el.addEventListener("click", () => showDateTimePicker(el));
     el.addEventListener("focus", () => showDateTimePicker(el));
+    el.addEventListener("input", () => {
+      const raw = el.value.trim();
+      markDateTimeValidity(el, !raw || !!parseDateTimeText(raw));
+      syncPickerFromText(el);
+      persistField(el);
+    });
+    el.addEventListener("blur", () => normalizeDateTimeField(el));
+    el.addEventListener("keydown", e => {
+      if (e.key === "Escape") hideDateTimePicker();
+    });
   });
 
   [startEl, endEl, baseEl, daysEl].forEach(el => {
