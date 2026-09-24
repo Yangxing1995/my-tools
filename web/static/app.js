@@ -9,6 +9,7 @@ const {
   parseCSRPEM,
   formatJSONText,
   minifyJSONText,
+  desensitizeJSONText,
   utf8ToBase64,
   base64ToUtf8,
   encodeURLText,
@@ -92,19 +93,40 @@ const toolCatalog = [
 const categoryOrder = ["数据处理", "编码转换", "证书工具", "本地工具"];
 let activeToolCategory = "全部";
 const frequentSubfeatureKey = "wrench:frequent-subfeatures";
-const frequentSubfeatureLimit = 2;
+const frequentSubfeatureDisplayLimit = 2;
+// Keep more history than the sidebar shows, otherwise features outside the top slots
+// lose their counter on every write and can never climb back into the list.
+const frequentSubfeatureStoreLimit = 20;
+const frequentSubfeatureHalfLifeMs = 30 * 24 * 60 * 60 * 1000;
 
 function readFrequentSubfeatures() {
   try {
-    return JSON.parse(localStorage.getItem(frequentSubfeatureKey) || "[]");
+    const items = JSON.parse(localStorage.getItem(frequentSubfeatureKey) || "[]");
+    if (!Array.isArray(items)) return [];
+    return items.filter(item => item && item.id && item.label);
   } catch (e) {
     return [];
   }
 }
 
+// Usage decays by half every 30 idle days, so the list tracks current habits
+// instead of whatever was clicked most when the tool was new.
+function subfeatureScore(item, now) {
+  const idleMs = Math.max(0, now - (item.lastUsed || now));
+  return (item.count || 0) * Math.pow(0.5, idleMs / frequentSubfeatureHalfLifeMs);
+}
+
+function sortFrequentSubfeatures(items) {
+  const now = Date.now();
+  return items
+    .slice()
+    .sort((a, b) => subfeatureScore(b, now) - subfeatureScore(a, now) || (b.lastUsed || 0) - (a.lastUsed || 0));
+}
+
 function writeFrequentSubfeatures(items) {
   try {
-    localStorage.setItem(frequentSubfeatureKey, JSON.stringify(items.slice(0, frequentSubfeatureLimit)));
+    const ranked = sortFrequentSubfeatures(items).slice(0, frequentSubfeatureStoreLimit);
+    localStorage.setItem(frequentSubfeatureKey, JSON.stringify(ranked));
   } catch (e) {
     // Recent feature tracking is optional UI metadata; tool execution must not depend on browser storage.
   }
@@ -114,9 +136,7 @@ function renderFrequentSubfeatures() {
   const el = $("appFrequentSubfeatures");
   if (!el) return;
 
-  const items = readFrequentSubfeatures()
-    .sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastUsed || 0) - (a.lastUsed || 0))
-    .slice(0, frequentSubfeatureLimit);
+  const items = sortFrequentSubfeatures(readFrequentSubfeatures()).slice(0, frequentSubfeatureDisplayLimit);
 
   el.replaceChildren();
   el.hidden = items.length === 0;
@@ -143,11 +163,14 @@ function recordSubfeatureUse(id, label, href) {
   if (existing) {
     existing.count = (existing.count || 0) + 1;
     existing.lastUsed = Date.now();
+    // Refresh the copy so renamed features stop showing their old label in the sidebar.
+    existing.label = label;
+    existing.href = href;
   } else {
     items.push({ id, label, href, count: 1, lastUsed: Date.now() });
   }
   // Only feature metadata is stored here; user input stays in sessionStorage or the live page.
-  writeFrequentSubfeatures(items.sort((a, b) => (b.count || 0) - (a.count || 0) || (b.lastUsed || 0) - (a.lastUsed || 0)));
+  writeFrequentSubfeatures(items);
   renderFrequentSubfeatures();
 }
 
@@ -1593,6 +1616,49 @@ function minifyJSON() {
   }
 }
 
+function desensitizeJSON() {
+  const btn = $("btnDesensitize");
+  const btnCopy = $("btnCopy");
+  const btnSave = $("btnSave");
+  const btnJSONTable = $("btnJSONTable");
+  const inEl = $("input");
+  const outEl = $("output");
+  const indentSelect = $("indentSelect");
+
+  if (!inEl || !outEl) return;
+
+  setStatus("处理中...", "");
+  if (btn) btn.disabled = true;
+  if (btnCopy) btnCopy.disabled = true;
+  if (btnSave) btnSave.disabled = true;
+  if (btnJSONTable) btnJSONTable.disabled = true;
+
+  const jsonText = (inEl.value || "").trim();
+  if (!jsonText) {
+    setStatus("输入为空", "err");
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  const indent = indentSelect ? parseInt(indentSelect.value, 10) : 2;
+
+  try {
+    setJSONOutputValue(desensitizeJSONText(jsonText, { indent }));
+    setStatus("脱敏完成", "ok");
+    recordSubfeatureUse("json-desensitize", "JSON 脱敏", "/json");
+    if (btnCopy) btnCopy.disabled = false;
+    if (btnSave) btnSave.disabled = false;
+    if (btnJSONTable) btnJSONTable.disabled = false;
+  } catch (e) {
+    setStatus(e.message, "err");
+    setJSONOutputValue("");
+    clearJSONTableView();
+  } finally {
+    persistPageState();
+    if (btn) btn.disabled = false;
+  }
+}
+
 function saveJSONToFile() {
   const outEl = $("output");
 
@@ -1622,6 +1688,7 @@ function saveJSONToFile() {
 function wireJSONPage() {
   const btnFormat = $("btnFormat");
   const btnMinify = $("btnMinify");
+  const btnDesensitize = $("btnDesensitize");
   const btnCopy = $("btnCopy");
   const btnSave = $("btnSave");
   const btnClear = $("btnClear");
@@ -1641,6 +1708,10 @@ function wireJSONPage() {
 
   if (btnMinify) {
     btnMinify.addEventListener("click", minifyJSON);
+  }
+
+  if (btnDesensitize) {
+    btnDesensitize.addEventListener("click", desensitizeJSON);
   }
 
   if (btnCopy && outEl) {
@@ -1717,20 +1788,22 @@ function runTextTransform(transform, doneMessage) {
   const outEl = $("output");
   const btnCopy = $("btnCopy");
 
-  if (!inEl || !outEl) return;
+  if (!inEl || !outEl) return false;
 
   const text = inEl.value || "";
   if (!text) {
     setStatus("输入为空", "err");
     outEl.value = "";
     if (btnCopy) btnCopy.disabled = true;
-    return;
+    return false;
   }
 
+  let ok = false;
   try {
     outEl.value = transform(text);
     setStatus(doneMessage, "ok");
     if (btnCopy) btnCopy.disabled = false;
+    ok = true;
   } catch (e) {
     outEl.value = "";
     setStatus("处理失败：" + e.message, "err");
@@ -1738,10 +1811,13 @@ function runTextTransform(transform, doneMessage) {
   } finally {
     persistPageState();
   }
+
+  return ok;
 }
 
 function runTextAction(action) {
-  runTextTransform(action.transform, action.doneMessage);
+  const ok = runTextTransform(action.transform, action.doneMessage);
+  if (!ok) return;
   recordSubfeatureUse(action.id || action.buttonId, action.label || action.doneMessage, action.href || `/${currentPage()}`);
 }
 
@@ -1850,7 +1926,7 @@ function currentPGArrayMode() {
 
 function runPGArrayTransform() {
   const uniqueEl = $("unique");
-  runTextTransform(
+  const ok = runTextTransform(
     text => toPGArray(text, {
       mode: currentPGArrayMode(),
       unique: uniqueEl ? uniqueEl.checked : true
@@ -1858,7 +1934,7 @@ function runPGArrayTransform() {
     "转换完成"
   );
   updatePGArrayStats();
-  recordSubfeatureUse("pg-array-convert", "PG Array 转换", "/pg-array");
+  if (ok) recordSubfeatureUse("pg-array-convert", "PG Array 转换", "/pg-array");
 }
 
 function updatePGArrayStats() {
@@ -1900,8 +1976,8 @@ function currentTextLineOptions(sort) {
 }
 
 function runTextLineTransform(sort, label) {
-  runTextTransform(text => transformLines(text, currentTextLineOptions(sort)), "处理完成");
-  recordSubfeatureUse(`text-${sort || "dedup"}`, label, "/text");
+  const ok = runTextTransform(text => transformLines(text, currentTextLineOptions(sort)), "处理完成");
+  if (ok) recordSubfeatureUse(`text-${sort || "dedup"}`, label, "/text");
 }
 
 function wireTextPage() {

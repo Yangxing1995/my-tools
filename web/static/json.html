@@ -22,6 +22,7 @@
             <div class="toolbar">
                 <button class="btn primary" id="btnFormat">格式化</button>
                 <button class="btn" id="btnMinify">压缩</button>
+                <button class="btn" id="btnDesensitize">脱敏</button>
                 <button class="btn" id="btnClear">清空</button>
                 <button class="btn" id="btnFullscreenInput" title="全屏">全屏</button>
                 <div class="small">快捷键：<span class="kbd">Ctrl</span>/<span class="kbd">Cmd</span> + <span
@@ -81,6 +82,10 @@
             </p>
             <p>
                 <strong>压缩：</strong>移除 JSON 中的所有空白字符，生成最小化的 JSON 字符串。
+            </p>
+            <p>
+                <strong>脱敏：</strong>自动识别并遮蔽手机号、邮箱、身份证号（按内容匹配），以及字段名包含
+                <span class="kbd">address</span>/<span class="kbd">地址</span> 等关键字的地址信息，其余内容保持不变。
             </p>
         </div>
     </div>

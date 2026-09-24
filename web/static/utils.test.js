@@ -52,6 +52,41 @@ test("minifyJSONText handles arrays and string delimiters", () => {
   assert.equal(utils.minifyJSONText(input), "[\"}\",{\"a\":1}]");
 });
 
+test("desensitizeJSONText masks phone, email and id card by content", () => {
+  const input = JSON.stringify({
+    phone: "13812345678",
+    email: "zhangsan@example.com",
+    idcard: "110101199003078515",
+    note: "联系电话 13812345678，身份证 110101199003078515",
+    age: 18
+  });
+  const result = JSON.parse(utils.desensitizeJSONText(input));
+  assert.equal(result.phone, "138****5678");
+  assert.equal(result.email, "zha***@example.com");
+  assert.equal(result.idcard, "110101********8515");
+  assert.equal(result.note, "联系电话 138****5678，身份证 110101********8515");
+  assert.equal(result.age, 18);
+});
+
+test("desensitizeJSONText masks address fields by key name and recurses into nested data", () => {
+  const input = JSON.stringify({
+    user: {
+      name: "test",
+      address: "北京市朝阳区某某街道1号院",
+      contacts: [{ homeAddress: "上海市浦东新区" }]
+    }
+  });
+  const result = JSON.parse(utils.desensitizeJSONText(input));
+  assert.equal(result.user.address, "北京市朝****");
+  assert.equal(result.user.contacts[0].homeAddress, "上海****");
+});
+
+test("desensitizeJSONText respects the rules option to skip a category", () => {
+  const input = JSON.stringify({ phone: "13812345678" });
+  const result = JSON.parse(utils.desensitizeJSONText(input, { rules: { phone: false } }));
+  assert.equal(result.phone, "13812345678");
+});
+
 test("base64 UTF-8 round trip", () => {
   const encoded = utils.utf8ToBase64("中文 test");
   assert.equal(encoded, "5Lit5paHIHRlc3Q=");

@@ -554,6 +554,85 @@
     }
   }
 
+  const PHONE_PATTERN = /(?<!\d)(?:\+?86[-\s]?)?1[3-9]\d{9}(?!\d)/g;
+  const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const IDCARD_PATTERN = /(?<!\d)[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)/g;
+  const ADDRESS_KEY_PATTERN = /(address|addr|地址|住址|所在地)/i;
+
+  function maskPhoneMatch(match) {
+    return match.replace(/(\d{3})\d{4}(\d{4})$/, "$1****$2");
+  }
+
+  function maskEmailMatch(match) {
+    const at = match.indexOf("@");
+    const local = match.slice(0, at);
+    const domain = match.slice(at);
+    const keep = Math.min(3, Math.max(1, Math.ceil(local.length / 2)));
+    return local.slice(0, keep) + "***" + domain;
+  }
+
+  function maskIDCardMatch(match) {
+    return match.slice(0, 6) + "*".repeat(match.length - 10) + match.slice(-4);
+  }
+
+  function maskAddressValue(text) {
+    if (!text) return text;
+    const keep = Math.min(6, Math.max(1, Math.floor(text.length / 3)));
+    return text.slice(0, keep) + "****";
+  }
+
+  function maskSensitiveText(text, key, rules) {
+    let out = text;
+    if (rules.phone) out = out.replace(PHONE_PATTERN, maskPhoneMatch);
+    if (rules.email) out = out.replace(EMAIL_PATTERN, maskEmailMatch);
+    if (rules.idcard) out = out.replace(IDCARD_PATTERN, maskIDCardMatch);
+    if (rules.address && key && out === text && ADDRESS_KEY_PATTERN.test(key)) {
+      out = maskAddressValue(out);
+    }
+    return out;
+  }
+
+  function desensitizeValue(value, key, rules) {
+    if (typeof value === "string") {
+      return maskSensitiveText(value, key, rules);
+    }
+    if (typeof value === "number") {
+      const asString = String(value);
+      const masked = maskSensitiveText(asString, key, rules);
+      return masked === asString ? value : masked;
+    }
+    if (Array.isArray(value)) {
+      return value.map(item => desensitizeValue(item, key, rules));
+    }
+    if (value && typeof value === "object") {
+      const result = {};
+      Object.keys(value).forEach(k => {
+        result[k] = desensitizeValue(value[k], k, rules);
+      });
+      return result;
+    }
+    return value;
+  }
+
+  function desensitizeJSONText(input, options = {}) {
+    const source = String(input || "").trim();
+    if (!source) throw new Error("输入为空");
+
+    const rules = Object.assign({ phone: true, email: true, idcard: true, address: true }, options.rules);
+    const indent = Math.max(0, options.indent == null ? 2 : options.indent);
+
+    const jsonText = extractJSONText(source);
+    let data;
+    try {
+      data = JSON.parse(jsonText);
+    } catch (e) {
+      throw new Error("invalid JSON: " + e.message);
+    }
+
+    const masked = desensitizeValue(data, null, rules);
+    return JSON.stringify(masked, null, indent);
+  }
+
   function utf8ToBase64(text) {
     const bytes = new TextEncoder().encode(text);
     let binary = "";
@@ -755,6 +834,7 @@
     extractJSONText,
     formatJSONText,
     minifyJSONText,
+    desensitizeJSONText,
     utf8ToBase64,
     base64ToUtf8,
     encodeURLText,
