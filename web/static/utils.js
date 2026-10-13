@@ -536,10 +536,41 @@
 
     const jsonText = extractJSONText(source);
     try {
-      return JSON.stringify(JSON.parse(jsonText), null, Math.max(0, indent || 2));
+      return JSON.stringify(expandStringifiedJSON(JSON.parse(jsonText)), null, Math.max(0, indent || 2));
     } catch (e) {
       throw new Error("invalid JSON: " + e.message);
     }
+  }
+
+  function looksLikeJSONContainer(text) {
+    const value = String(text || "").trim();
+    return (value.startsWith("{") && value.endsWith("}")) || (value.startsWith("[") && value.endsWith("]"));
+  }
+
+  function expandStringifiedJSON(value, depth = 0) {
+    if (depth > 20) return value;
+
+    if (typeof value === "string") {
+      const text = value.trim();
+      if (!looksLikeJSONContainer(text)) return value;
+      try {
+        return expandStringifiedJSON(JSON.parse(text), depth + 1);
+      } catch (e) {
+        return value;
+      }
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(item => expandStringifiedJSON(item, depth + 1));
+    }
+
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [key, expandStringifiedJSON(item, depth + 1)])
+      );
+    }
+
+    return value;
   }
 
   function minifyJSONText(input) {

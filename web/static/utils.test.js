@@ -47,6 +47,18 @@ test("formatJSONText extracts JSON from log text", () => {
   assert.equal(utils.formatJSONText(input, 2), "{\n  \"ok\": true,\n  \"items\": [\n    1,\n    2\n  ]\n}");
 });
 
+test("formatJSONText expands nested JSON stored as strings", () => {
+  const input = JSON.stringify({
+    body: JSON.stringify({ commonName: "a.test1.xdns.cn", userAgreement: true }),
+    rawResp: JSON.stringify({ error: [{ code: -15004 }], code: -10000 }),
+    plain: "{not json}"
+  });
+  const parsed = JSON.parse(utils.formatJSONText(input, 2));
+  assert.deepEqual(parsed.body, { commonName: "a.test1.xdns.cn", userAgreement: true });
+  assert.deepEqual(parsed.rawResp, { error: [{ code: -15004 }], code: -10000 });
+  assert.equal(parsed.plain, "{not json}");
+});
+
 test("minifyJSONText handles arrays and string delimiters", () => {
   const input = "prefix [\"}\",{\"a\":1}] suffix";
   assert.equal(utils.minifyJSONText(input), "[\"}\",{\"a\":1}]");
