@@ -588,7 +588,8 @@ function syncRestoredControls() {
 }
 
 async function copyToClipboard(text) {
-    if (!text) return false;
+    // 全空列也需要覆盖剪贴板，避免保留上一次复制的内容。
+    if (text === null || text === undefined) return false;
 
     // 优先使用现代 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1151,6 +1152,12 @@ function setJSONOutputValue(value) {
   }
 }
 
+function getJSONOutputValue() {
+  if (jsonOutputEditor) return jsonOutputEditor.getValue();
+  const outEl = $("output");
+  return outEl ? outEl.value || "" : "";
+}
+
 function getJSONOutputSelection() {
   if (!jsonOutputEditor) return "";
   const selection = jsonOutputEditor.getSelection();
@@ -1334,6 +1341,102 @@ function openJSONMonacoFullscreen() {
 }
 
 let jsonTableRows = [];
+let jsonTableTransposed = false;
+let jsonSelectedCell = null;
+const jsonNavigationHistory = [];
+
+function getJSONCellDocument(value) {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!parsed || typeof parsed !== "object") return null;
+    return JSON.stringify(parsed, null, 2);
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearJSONCellSelection() {
+  if (jsonSelectedCell) jsonSelectedCell.element.classList.remove("json-cell-selected");
+  jsonSelectedCell = null;
+  const button = $("btnJSONOpenCell");
+  const label = $("jsonCellSelection");
+  if (button) button.disabled = true;
+  if (label) label.textContent = "单击单元格选择内容，双击全屏查看。打开后替换当前内容，可返回上一级。";
+}
+
+function selectJSONTableCell(element, rowIndex, field) {
+  clearJSONCellSelection();
+  const text = getJSONCellDocument(jsonTableRows[rowIndex][field]);
+  jsonSelectedCell = { element, rowIndex, field, text };
+  element.classList.add("json-cell-selected");
+  const button = $("btnJSONOpenCell");
+  const label = $("jsonCellSelection");
+  if (button) button.disabled = text === null;
+  if (label) {
+    label.textContent = `已选第 ${rowIndex + 1} ${jsonTableTransposed ? "条记录" : "行"}「${field}」` +
+      (text === null ? "：该单元格不包含可展开的 JSON" : "：可作为 JSON 打开，替换当前内容");
+  }
+}
+
+function updateJSONNavigationButton() {
+  const button = $("btnJSONBack");
+  if (button) button.disabled = jsonNavigationHistory.length === 0;
+}
+
+function openSelectedJSONCell() {
+  const inEl = $("input");
+  if (!inEl || !jsonSelectedCell || jsonSelectedCell.text === null) return;
+
+  try {
+    const formatted = formatJSONText(jsonSelectedCell.text, 2);
+    const field = jsonSelectedCell.field;
+    // 返回时保留原始日志输入和字段筛选，不能仅凭格式化输出重建上一级。
+    jsonNavigationHistory.push({
+      input: inEl.value,
+      output: getJSONOutputValue(),
+      rows: jsonTableRows,
+      fields: getSelectedJSONTableFields(),
+      transposed: jsonTableTransposed
+    });
+    inEl.value = formatted;
+    setJSONOutputValue(formatted);
+    clearJSONTableView();
+    updateJSONNavigationButton();
+    persistField(inEl);
+    setStatus(`已打开「${field}」，可返回上一级`, "ok");
+    inEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    setStatus("打开 JSON 失败：" + e.message, "err");
+  }
+}
+
+function restorePreviousJSON() {
+  const inEl = $("input");
+  const card = $("jsonTableCard");
+  if (!inEl || !card || !jsonNavigationHistory.length) return;
+
+  const previous = jsonNavigationHistory.pop();
+  clearJSONTableView();
+  inEl.value = previous.input;
+  setJSONOutputValue(previous.output);
+  jsonTableRows = previous.rows;
+  jsonTableTransposed = previous.transposed;
+  renderJSONFieldList(collectJSONTableFields(jsonTableRows));
+  const selected = new Set(previous.fields);
+  document.querySelectorAll("#jsonFieldList input[type='checkbox']").forEach(input => {
+    input.checked = selected.has(input.value);
+  });
+  renderJSONTable();
+  card.hidden = false;
+  ["btnCopy", "btnSave", "btnJSONTable"].forEach(id => {
+    const button = $(id);
+    if (button) button.disabled = !previous.output.trim();
+  });
+  updateJSONNavigationButton();
+  persistField(inEl);
+  setStatus("已返回上一级，恢复原始输入和字段选择", "ok");
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 function normalizeJSONTableRows(value) {
   const rows = Array.isArray(value) ? value : [value];
@@ -1423,13 +1526,94 @@ function getSelectedJSONTableFields() {
   return Array.from(document.querySelectorAll("#jsonFieldList input[type='checkbox']:checked")).map(input => input.value);
 }
 
+function selectJSONTableFields(invert = false) {
+  document.querySelectorAll("#jsonFieldList input[type='checkbox']").forEach(input => {
+    input.checked = invert ? !input.checked : true;
+  });
+  renderJSONTable();
+}
+
+async function copyJSONTableColumn(field) {
+  const text = jsonTableRows.map(row => formatJSONTableCell(row[field])).join("\n");
+  const ok = await copyToClipboard(text);
+  const status = $("jsonTableStatus");
+  if (status) {
+    status.textContent = ok
+      ? (jsonTableTransposed ? `已复制「${field}」字段（${jsonTableRows.length} 条记录）` : `已复制「${field}」列（${jsonTableRows.length} 行）`)
+      : "复制失败（浏览器不支持或无权限）";
+    status.className = `status ${ok ? "ok" : "err"}`;
+  }
+}
+
+function toggleJSONTableTranspose() {
+  jsonTableTransposed = !jsonTableTransposed;
+  renderJSONTable();
+}
+
+function createJSONTableFieldHeader(field) {
+  const th = document.createElement("th");
+  th.setAttribute("scope", jsonTableTransposed ? "row" : "col");
+  const header = document.createElement("div");
+  header.className = "json-column-header";
+  const name = document.createElement("span");
+  name.textContent = field;
+  const copyButton = document.createElement("button");
+  copyButton.type = "button";
+  copyButton.className = "btn";
+  copyButton.textContent = jsonTableTransposed ? "复制字段" : "复制列";
+  copyButton.setAttribute("aria-label", `复制「${field}」${jsonTableTransposed ? "字段" : "列"}内容`);
+  copyButton.addEventListener("click", () => copyJSONTableColumn(field));
+  header.appendChild(name);
+  header.appendChild(copyButton);
+  th.appendChild(header);
+  return th;
+}
+
+function createJSONTableDataCell(rowIndex, field) {
+  const td = document.createElement("td");
+  td.tabIndex = 0;
+  td.addEventListener("click", () => selectJSONTableCell(td, rowIndex, field));
+  td.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectJSONTableCell(td, rowIndex, field);
+    }
+  });
+  const value = formatJSONTableCell(jsonTableRows[rowIndex][field]);
+  const content = document.createElement("div");
+  content.className = "json-cell-content";
+  content.textContent = value;
+  content.title = "单击选中，双击全屏查看";
+  content.addEventListener("dblclick", () => showJSONCellFullscreen(field, value));
+  td.appendChild(content);
+  return td;
+}
+
 function renderJSONTable(fields) {
   const container = $("jsonTableContainer");
   const summary = $("jsonTableSummary");
   if (!container) return;
+  clearJSONCellSelection();
 
   const selectedFields = fields && fields.length ? fields : getSelectedJSONTableFields();
-  if (summary) summary.textContent = `${jsonTableRows.length} 行 / ${selectedFields.length} 列`;
+  if (summary) {
+    summary.textContent = jsonTableTransposed
+      ? `${selectedFields.length} 个字段 / ${jsonTableRows.length} 条记录 · 已转置`
+      : `${jsonTableRows.length} 行 / ${selectedFields.length} 列`;
+  }
+  const transposeButton = $("btnJSONTableTranspose");
+  if (transposeButton) {
+    transposeButton.textContent = jsonTableTransposed ? "恢复行列" : "转置";
+    transposeButton.setAttribute("aria-pressed", String(jsonTableTransposed));
+  }
+  const copyHint = $("jsonTableCopyHint");
+  if (copyHint) {
+    copyHint.textContent = jsonTableTransposed
+      ? "点击左侧「复制字段」可复制该字段的全部值，每行一项，不含字段名。"
+      : "点击表头「复制列」可复制该列内容，每行一项，不含表头。";
+  }
+  const status = $("jsonTableStatus");
+  if (status) status.textContent = "";
 
   if (!selectedFields.length) {
     container.innerHTML = "<div class=\"small\">请至少选择一个字段</div>";
@@ -1437,34 +1621,42 @@ function renderJSONTable(fields) {
   }
 
   const table = document.createElement("table");
-  table.className = "json-data-table";
+  table.className = jsonTableTransposed ? "json-data-table json-data-table-transposed" : "json-data-table";
 
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  selectedFields.forEach(field => {
-    const th = document.createElement("th");
-    th.textContent = field;
-    headerRow.appendChild(th);
-  });
+  if (jsonTableTransposed) {
+    const corner = document.createElement("th");
+    corner.setAttribute("scope", "col");
+    corner.textContent = "字段";
+    headerRow.appendChild(corner);
+    jsonTableRows.forEach((row, rowIndex) => {
+      const th = document.createElement("th");
+      th.setAttribute("scope", "col");
+      th.textContent = `第 ${rowIndex + 1} 条`;
+      headerRow.appendChild(th);
+    });
+  } else {
+    selectedFields.forEach(field => headerRow.appendChild(createJSONTableFieldHeader(field)));
+  }
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
-  jsonTableRows.forEach(row => {
-    const tr = document.createElement("tr");
+  if (jsonTableTransposed) {
     selectedFields.forEach(field => {
-      const td = document.createElement("td");
-      const value = formatJSONTableCell(row[field]);
-      const content = document.createElement("div");
-      content.className = "json-cell-content";
-      content.textContent = value;
-      content.title = "双击全屏查看";
-      content.addEventListener("dblclick", () => showJSONCellFullscreen(field, value));
-      td.appendChild(content);
-      tr.appendChild(td);
+      const tr = document.createElement("tr");
+      tr.appendChild(createJSONTableFieldHeader(field));
+      jsonTableRows.forEach((row, rowIndex) => tr.appendChild(createJSONTableDataCell(rowIndex, field)));
+      tbody.appendChild(tr);
     });
-    tbody.appendChild(tr);
-  });
+  } else {
+    jsonTableRows.forEach((row, rowIndex) => {
+      const tr = document.createElement("tr");
+      selectedFields.forEach(field => tr.appendChild(createJSONTableDataCell(rowIndex, field)));
+      tbody.appendChild(tr);
+    });
+  }
   table.appendChild(tbody);
 
   container.replaceChildren(table);
@@ -1495,15 +1687,18 @@ function renderJSONFieldList(fields) {
 }
 
 function clearJSONTableView() {
+  clearJSONCellSelection();
   jsonTableRows = [];
   const card = $("jsonTableCard");
   const fieldList = $("jsonFieldList");
   const container = $("jsonTableContainer");
   const summary = $("jsonTableSummary");
+  const status = $("jsonTableStatus");
   if (card) card.hidden = true;
   if (fieldList) fieldList.replaceChildren();
   if (container) container.replaceChildren();
   if (summary) summary.textContent = "";
+  if (status) status.textContent = "";
 }
 
 function showJSONTableView() {
@@ -1729,8 +1924,26 @@ function wireJSONPage() {
     btnJSONTable.addEventListener("click", showJSONTableView);
   }
 
+  const btnJSONTableSelectAll = $("btnJSONTableSelectAll");
+  const btnJSONTableInvertSelection = $("btnJSONTableInvertSelection");
+  const btnJSONTableTranspose = $("btnJSONTableTranspose");
+  if (btnJSONTableTranspose) btnJSONTableTranspose.addEventListener("click", toggleJSONTableTranspose);
+  if (btnJSONTableSelectAll) {
+    btnJSONTableSelectAll.addEventListener("click", () => selectJSONTableFields());
+  }
+  if (btnJSONTableInvertSelection) {
+    btnJSONTableInvertSelection.addEventListener("click", () => selectJSONTableFields(true));
+  }
+
+  const btnJSONOpenCell = $("btnJSONOpenCell");
+  const btnJSONBack = $("btnJSONBack");
+  if (btnJSONOpenCell) btnJSONOpenCell.addEventListener("click", openSelectedJSONCell);
+  if (btnJSONBack) btnJSONBack.addEventListener("click", restorePreviousJSON);
+
   if (btnClear) {
     btnClear.addEventListener("click", () => {
+      jsonNavigationHistory.length = 0;
+      updateJSONNavigationButton();
       if (inEl) inEl.value = "";
       setJSONOutputValue("");
       clearJSONTableView();

@@ -29,7 +29,7 @@ go run ./cmd/wrench serve -addr 127.0.0.1:8111 -static-dir web/static
 
 ## 当前工具
 
-- JSON 解析器：支持从日志行或混杂文本中提取 JSON，并提供格式化、压缩、折叠编辑和表格查看。
+- JSON 解析器：支持从日志行或混杂文本中提取 JSON，并提供格式化、压缩、折叠编辑和表格查看；支持转置表格，将字段放在左侧、记录放在右侧；可选择表格单元格作为 JSON 打开，并逐级返回以恢复原始输入、字段选择和转置状态。
 - Base64 编解码：按 UTF-8 文本处理。
 - URL 编解码：处理 URL percent-encoding。
 - PG Array 转换：把换行、逗号或空格分隔的一串 ID 转成 PostgreSQL 查询片段。

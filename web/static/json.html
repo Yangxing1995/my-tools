@@ -55,6 +55,7 @@
                 <button class="btn" id="btnCollapseJSON" type="button">收起全部</button>
                 <button class="btn" id="btnJSONTable" type="button" disabled>表格视图</button>
             </div>
+                <button class="btn" id="btnJSONBack" type="button" disabled>返回上一级</button>
             <div class="json-output-box">
                 <textarea class="textarea" id="output" placeholder="格式化或压缩后的结果将显示在这里"></textarea>
                 <div class="json-editor" id="jsonOutputEditor" hidden></div>
@@ -67,7 +68,18 @@
                 <span id="jsonTableSummary"></span>
             </div>
             <div class="json-field-list" id="jsonFieldList"></div>
+            <div class="toolbar">
+                <button class="btn" id="btnJSONTableSelectAll" type="button">全选</button>
+                <button class="btn" id="btnJSONTableInvertSelection" type="button">反选</button>
+                <button class="btn" id="btnJSONTableTranspose" type="button" aria-pressed="false">转置</button>
+                <span class="small" id="jsonTableCopyHint">点击表头「复制列」可复制该列内容，每行一项，不含表头。</span>
+            </div>
             <div class="json-table-wrap" id="jsonTableContainer"></div>
+            <div class="toolbar">
+                <button class="btn primary" id="btnJSONOpenCell" type="button" disabled>作为 JSON 打开</button>
+                <span class="small" id="jsonCellSelection" role="status" aria-live="polite">单击单元格选择内容，双击全屏查看。打开后替换当前内容，可返回上一级。</span>
+            </div>
+            <div id="jsonTableStatus" class="status" role="status" aria-live="polite"></div>
         </div>
 
         <div class="card">
